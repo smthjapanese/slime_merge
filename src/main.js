@@ -11,6 +11,14 @@ import { pruneExpiredEffects } from './effects.js';
 import { checkGameOver } from './gameover.js';
 import { resetScore, setGameOver, isGameOverActive, getScore } from './state.js';
 import { initUI, setNextPreview, showGameOver, hideGameOver } from './ui.js';
+import {
+  initYandexSDK,
+  notifyGameReady,
+  getBestScore,
+  setBestScore,
+  isAdDueThisRestart,
+  showFullscreenAd,
+} from './yandex.js';
 
 const { World, Runner } = Matter;
 
@@ -37,6 +45,16 @@ const effects = [];
 // The slime "loaded" in the spawner, waiting to be dropped. Has no physics
 // body yet — it's purely a render-time concept until the player drops it.
 let pending = null;
+
+// Kicked off immediately; game start doesn't wait on it. Best-score reads
+// and the mandatory LoadingAPI.ready() signal chain off it so they never
+// race the SDK's own async init.
+const yandexReady = initYandexSDK();
+
+let bestScore = 0;
+yandexReady.then(() => getBestScore()).then((score) => {
+  bestScore = score;
+});
 
 function pendingY() {
   return JAR_TOP - PENDING_Y_OFFSET;
@@ -84,6 +102,15 @@ function resetGame() {
   hideGameOver();
 }
 
+/** Restart button handler: gates the actual reset behind an occasional ad. */
+function handleRestartRequest() {
+  if (isAdDueThisRestart()) {
+    showFullscreenAd(resetGame);
+  } else {
+    resetGame();
+  }
+}
+
 setupInput(canvas, {
   getRadius: () => (pending ? pending.radius : 0),
   onMove: (x) => {
@@ -92,20 +119,35 @@ setupInput(canvas, {
   onDrop: (x) => dropSlime(x),
 });
 
-initUI({ onRestart: resetGame });
+initUI({ onRestart: handleRestartRequest });
 
 startWorld();
 spawnPending(canvas.width / 2);
+
+let firstFrameRendered = false;
 
 function loop(now) {
   if (!isGameOverActive() && checkGameOver(slimes, now)) {
     setGameOver(true);
     Runner.stop(runner);
-    showGameOver(getScore());
+    const finalScore = getScore();
+    if (finalScore > bestScore) {
+      bestScore = finalScore;
+      setBestScore(bestScore);
+    }
+    showGameOver(finalScore, bestScore);
   }
 
   pruneExpiredEffects(effects, now);
   renderScene(ctx, { slimes, pending, effects }, now);
+
+  if (!firstFrameRendered) {
+    firstFrameRendered = true;
+    // Yandex Games moderation requirement: signal "loaded" only once the
+    // first frame has actually been drawn.
+    yandexReady.then(() => notifyGameReady());
+  }
+
   requestAnimationFrame(loop);
 }
 

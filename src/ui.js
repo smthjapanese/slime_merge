@@ -16,6 +16,7 @@ const nextPreviewEl = document.getElementById('next-preview-circle');
 const dangerLineEl = document.getElementById('danger-line');
 const gameOverEl = document.getElementById('game-over');
 const finalScoreValueEl = document.getElementById('final-score-value');
+const bestScoreValueEl = document.getElementById('best-score-value');
 const restartButton = document.getElementById('restart-button');
 
 // Leaves a small margin around the scaled stage so it never touches the
@@ -48,8 +49,9 @@ export function setNextPreview(radius, color) {
   nextPreviewEl.style.height = `${size}px`;
 }
 
-export function showGameOver(finalScore) {
+export function showGameOver(finalScore, bestScore) {
   finalScoreValueEl.textContent = String(finalScore);
+  bestScoreValueEl.textContent = String(bestScore);
   gameOverEl.classList.remove('hidden');
 }
 

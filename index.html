@@ -7,6 +7,14 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Slime Merge — Physics Sandbox</title>
+    <!--
+      Yandex Games platform SDK. Loaded synchronously (no async/defer) so
+      window.YaGames is already defined by the time our module script runs.
+      Outside the Yandex Games iframe this request/script simply fails to
+      resolve — yandex.js treats a missing window.YaGames as "no platform"
+      and no-ops instead of throwing.
+    -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -33,6 +41,7 @@
             <div class="game-over-panel">
               <h2>Игра окончена</h2>
               <p>Счёт: <span id="final-score-value">0</span></p>
+              <p>Лучший счёт: <span id="best-score-value">0</span></p>
               <button id="restart-button" type="button">Играть снова</button>
             </div>
           </div>
