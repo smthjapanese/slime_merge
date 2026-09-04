@@ -1,0 +1,17 @@
+{
+  "name": "slime-merge",
+  "version": "0.1.0",
+  "description": "Slime Merge — physics sandbox prototype (stage 1: no merge logic yet)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "matter-js": "^0.20.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

@@ -1,0 +1,25 @@
+/* Full-viewport centered layout for a mobile-proportioned game canvas (Yandex Games webview target) */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #1a1a2e;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+#app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+#game-canvas {
+  background: #0f0f1e;
+  touch-action: none;
+  max-width: 100vw;
+  max-height: 100vh;
+}
