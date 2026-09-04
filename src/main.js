@@ -1,11 +1,11 @@
 // Entry point: wires up physics, input and rendering, and runs the game loop.
-// Stage 1 (physics sandbox): slimes just spawn and fall, no merge logic yet.
 
 import Matter from 'matter-js';
 import { createPhysicsWorld, JAR_TOP } from './physics.js';
 import { createSlime, randomSpawnLevel } from './entities.js';
 import { setupInput } from './input.js';
 import { renderScene } from './render.js';
+import { setupMergeHandling } from './merge.js';
 
 const { World, Runner } = Matter;
 
@@ -20,6 +20,9 @@ const PENDING_Y = JAR_TOP - 40;
 
 // All slimes that have been dropped into the jar and now have physics bodies.
 const slimes = [];
+
+// Detects same-level collisions and merges them into the next level up.
+setupMergeHandling(engine, world, slimes);
 
 // The slime "loaded" in the spawner, waiting to be dropped. Has no physics
 // body yet — it's purely a render-time concept until the player drops it.

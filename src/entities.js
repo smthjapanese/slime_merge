@@ -1,5 +1,4 @@
 // Slime level definitions and physics-body factory.
-// Stage 1 has no merge logic — levels only describe size/appearance/physics.
 
 import Matter from 'matter-js';
 
@@ -19,17 +18,31 @@ export const SLIME_LEVELS = [
   { level: 7, radius: 90, color: '#f783ac', density: 0.0008 },
 ];
 
-// Only the first 4 levels are ever dropped by the spawner in this stage.
-export const SPAWNABLE_LEVEL_COUNT = 4;
+export const MAX_LEVEL_INDEX = SLIME_LEVELS.length - 1;
+
+// Only the first 4 levels are ever dropped by the spawner. Weighted so lower
+// levels drop more often (index 0 = human "level 1", most common).
+const SPAWN_WEIGHTS = [0.4, 0.3, 0.2, 0.1];
 
 export function randomSpawnLevel() {
-  return Math.floor(Math.random() * SPAWNABLE_LEVEL_COUNT);
+  const roll = Math.random();
+  let cumulative = 0;
+  for (let i = 0; i < SPAWN_WEIGHTS.length; i += 1) {
+    cumulative += SPAWN_WEIGHTS[i];
+    if (roll < cumulative) return i;
+  }
+  // Guards against floating-point rounding leaving a tiny gap at roll ~= 1.
+  return SPAWN_WEIGHTS.length - 1;
 }
 
 /**
  * Creates a dynamic Matter.js circle body for a slime, plus a lightweight
  * render-facing wrapper. The wrapper is what render.js iterates over each
  * frame to read the synced position/angle from the physics body.
+ *
+ * The body's `plugin.wrapper` back-reference and `plugin.merging` flag let
+ * merge.js resolve a collision pair straight back to its slime wrapper
+ * without keeping a separate body->wrapper lookup table in sync.
  */
 export function createSlime(levelIndex, x, y) {
   const def = SLIME_LEVELS[levelIndex];
@@ -42,12 +55,16 @@ export function createSlime(levelIndex, x, y) {
     friction: 0.5,
     density: def.density,
     label: `slime-${def.level}`,
+    plugin: { merging: false },
   });
 
-  return {
+  const slime = {
     body,
     level: def.level,
     radius: def.radius,
     color: def.color,
   };
+  body.plugin.wrapper = slime;
+
+  return slime;
 }
