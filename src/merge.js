@@ -4,6 +4,7 @@
 import Matter from 'matter-js';
 import { MAX_LEVEL_INDEX, createSlime } from './entities.js';
 import { addScore } from './state.js';
+import { createMergeFlash } from './effects.js';
 
 const { Events, World } = Matter;
 
@@ -12,16 +13,17 @@ const { Events, World } = Matter;
  * dropped slime wrappers owned by main.js — merges mutate it directly
  * (splicing out the merged pair, pushing the newly created slime) so the
  * render loop always reflects the current set without extra bookkeeping.
+ * `effects` gets a flash pushed at the merge point (also owned by main.js).
  */
-export function setupMergeHandling(engine, world, slimes) {
+export function setupMergeHandling(engine, world, slimes, effects) {
   Events.on(engine, 'collisionStart', (event) => {
     for (const pair of event.pairs) {
-      tryMerge(pair.bodyA, pair.bodyB, world, slimes);
+      tryMerge(pair.bodyA, pair.bodyB, world, slimes, effects);
     }
   });
 }
 
-function tryMerge(bodyA, bodyB, world, slimes) {
+function tryMerge(bodyA, bodyB, world, slimes, effects) {
   const wrapperA = bodyA.plugin && bodyA.plugin.wrapper;
   const wrapperB = bodyB.plugin && bodyB.plugin.wrapper;
 
@@ -40,17 +42,23 @@ function tryMerge(bodyA, bodyB, world, slimes) {
   const nextLevel = currentLevel + 1;
   const midX = (bodyA.position.x + bodyB.position.x) / 2;
   const midY = (bodyA.position.y + bodyB.position.y) / 2;
+  const now = performance.now();
 
   World.remove(world, bodyA);
   World.remove(world, bodyB);
   removeFromArray(slimes, wrapperA);
   removeFromArray(slimes, wrapperB);
 
+  let flashRadius = wrapperA.radius;
   if (currentLevel < MAX_LEVEL_INDEX) {
     const merged = createSlime(nextLevel, midX, midY);
+    merged.spawnedAt = now; // drives the pop-in scale-up in animation.js
     World.add(world, merged.body);
     slimes.push(merged);
+    flashRadius = merged.radius;
   }
+  effects.push(createMergeFlash(midX, midY, flashRadius, now));
+
   // Max level (SLIME_LEVELS.length): no new slime is spawned, just the
   // score bonus below, using human-numbered levels (1-indexed) throughout —
   // e.g. two level-1 slimes merging into level 2 score 2**2.

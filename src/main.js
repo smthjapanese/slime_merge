@@ -6,6 +6,8 @@ import { createSlime, randomSpawnLevel } from './entities.js';
 import { setupInput } from './input.js';
 import { renderScene } from './render.js';
 import { setupMergeHandling } from './merge.js';
+import { setupLandingSquash } from './animation.js';
+import { pruneExpiredEffects } from './effects.js';
 import { checkGameOver } from './gameover.js';
 import { resetScore, setGameOver, isGameOverActive, getScore } from './state.js';
 import { initUI, setNextPreview, showGameOver, hideGameOver } from './ui.js';
@@ -27,6 +29,10 @@ let runner;
 // merge.js and the render loop always see the current contents, restarts
 // included.
 const slimes = [];
+
+// Transient visual-only effects (currently just merge flashes), same
+// mutate-in-place pattern as `slimes`.
+const effects = [];
 
 // The slime "loaded" in the spawner, waiting to be dropped. Has no physics
 // body yet — it's purely a render-time concept until the player drops it.
@@ -59,7 +65,8 @@ function startWorld() {
   const created = createPhysicsWorld();
   engine = created.engine;
   world = created.world;
-  setupMergeHandling(engine, world, slimes);
+  setupMergeHandling(engine, world, slimes, effects);
+  setupLandingSquash(engine);
 
   runner = Runner.create();
   Runner.run(runner, engine);
@@ -69,6 +76,7 @@ function startWorld() {
 function resetGame() {
   Runner.stop(runner);
   slimes.length = 0;
+  effects.length = 0;
   resetScore();
   setGameOver(false);
   startWorld();
@@ -96,7 +104,8 @@ function loop(now) {
     showGameOver(getScore());
   }
 
-  renderScene(ctx, { slimes, pending });
+  pruneExpiredEffects(effects, now);
+  renderScene(ctx, { slimes, pending, effects }, now);
   requestAnimationFrame(loop);
 }
 

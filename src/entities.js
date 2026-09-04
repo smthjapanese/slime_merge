@@ -63,6 +63,14 @@ export function createSlime(levelIndex, x, y) {
     level: def.level,
     radius: def.radius,
     color: def.color,
+    // Random phase so idle-breathing slimes don't all pulse in lockstep.
+    idlePhase: Math.random() * Math.PI * 2,
+    // Animation state (read/written by animation.js): squashStartTime +
+    // squashAmount drive the landing squash-and-stretch, spawnedAt drives
+    // the merge pop-in scale-up. All left undefined until an event sets them.
+    squashStartTime: null,
+    squashAmount: 0,
+    spawnedAt: null,
   };
   body.plugin.wrapper = slime;
 
