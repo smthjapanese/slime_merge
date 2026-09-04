@@ -11,7 +11,33 @@
   </head>
   <body>
     <div id="app">
-      <canvas id="game-canvas" width="380" height="600"></canvas>
+      <!--
+        The stage is a fixed 380x600 logical box (matches the canvas's
+        drawing-buffer resolution). ui.js scales the whole box with a CSS
+        transform to fit the viewport, so every child positioned in logical
+        px here — the canvas, the danger line, the HUD — scales as one unit.
+      -->
+      <div id="stage">
+        <canvas id="game-canvas" width="380" height="600"></canvas>
+
+        <div id="hud">
+          <div id="danger-line"></div>
+
+          <div id="score-hud">Счёт: <span id="score-value">0</span></div>
+
+          <div id="next-hud">
+            <div id="next-preview-circle"></div>
+          </div>
+
+          <div id="game-over" class="hidden">
+            <div class="game-over-panel">
+              <h2>Игра окончена</h2>
+              <p>Счёт: <span id="final-score-value">0</span></p>
+              <button id="restart-button" type="button">Играть снова</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

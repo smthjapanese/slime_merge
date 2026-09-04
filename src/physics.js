@@ -19,6 +19,12 @@ export const JAR_RIGHT = JAR_LEFT + JAR_WIDTH;
 export const JAR_BOTTOM = CANVAS_HEIGHT - 20;
 export const JAR_TOP = JAR_BOTTOM - JAR_HEIGHT;
 
+// Danger line sits at 85% of the jar's height measured from the bottom
+// (i.e. 15% down from the open top) — stacking a slime above it for too
+// long ends the game.
+export const DANGER_LINE_RATIO = 0.85;
+export const DANGER_LINE_Y = JAR_BOTTOM - JAR_HEIGHT * DANGER_LINE_RATIO;
+
 /**
  * Builds a fresh Matter.js engine with static walls for the left, right and
  * bottom of the jar. The top stays open — that's where slimes are dropped in.
