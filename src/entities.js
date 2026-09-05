@@ -1,6 +1,7 @@
 // Slime level definitions and physics-body factory.
 
 import Matter from 'matter-js';
+import { pickRandomBaseExpression } from './face.js';
 
 const { Bodies } = Matter;
 
@@ -71,6 +72,12 @@ export function createSlime(levelIndex, x, y) {
     squashStartTime: null,
     squashAmount: 0,
     spawnedAt: null,
+    // Facial expression state (read/written by face.js): baseExpression is
+    // this slime's resting look when nothing else is going on; surprisedUntil
+    // and dizzyUntil are timestamps set by collision/merge reactions.
+    baseExpression: pickRandomBaseExpression(),
+    surprisedUntil: null,
+    dizzyUntil: null,
   };
   body.plugin.wrapper = slime;
 

@@ -9,9 +9,10 @@ import {
   JAR_TOP,
   JAR_BOTTOM,
 } from './physics.js';
-import { getSlimeRenderScale } from './animation.js';
+import { getSlimeRenderScale, isResting } from './animation.js';
 import { effectProgress } from './effects.js';
 import { lighten, darken } from './color.js';
+import { getExpression, drawFace } from './face.js';
 
 export function clearScene(ctx) {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -35,7 +36,7 @@ export function drawJar(ctx) {
  * at the given radius. All feature sizes are proportional to `radius` so
  * the same artwork scales cleanly across all 8 levels.
  */
-function drawSlimeArt(ctx, radius, color) {
+function drawSlimeArt(ctx, radius, color, expression) {
   const light = lighten(color, 0.55);
   const dark = darken(color, 0.35);
   const hornColor = darken(color, 0.15);
@@ -82,22 +83,13 @@ function drawSlimeArt(ctx, radius, color) {
   ctx.fill();
   ctx.restore();
 
-  // --- Eyes (black, with a small white catch-light).
-  drawEye(ctx, -radius * 0.32, -radius * 0.05, radius);
-  drawEye(ctx, radius * 0.32, -radius * 0.05, radius);
-
   // --- Cheeks (soft pink blush).
   ctx.fillStyle = 'rgba(255, 110, 150, 0.45)';
   drawEllipse(ctx, -radius * 0.5, radius * 0.18, radius * 0.14, radius * 0.09);
   drawEllipse(ctx, radius * 0.5, radius * 0.18, radius * 0.14, radius * 0.09);
 
-  // --- Mouth: simple smile arc.
-  ctx.beginPath();
-  ctx.arc(0, radius * 0.05, radius * 0.32, 0.2 * Math.PI, 0.8 * Math.PI);
-  ctx.lineWidth = Math.max(1, radius * 0.06);
-  ctx.strokeStyle = dark;
-  ctx.lineCap = 'round';
-  ctx.stroke();
+  // --- Face: eyes + mouth, shape depends on the current expression.
+  drawFace(ctx, radius, expression);
 }
 
 function drawHorn(ctx, offsetX, color, radius) {
@@ -113,19 +105,6 @@ function drawHorn(ctx, offsetX, color, radius) {
   ctx.fill();
 }
 
-function drawEye(ctx, x, y, radius) {
-  const eyeRadius = radius * 0.11;
-  ctx.beginPath();
-  ctx.arc(x, y, eyeRadius, 0, Math.PI * 2);
-  ctx.fillStyle = '#1a1a2e';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(x - eyeRadius * 0.35, y - eyeRadius * 0.35, eyeRadius * 0.35, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffffff';
-  ctx.fill();
-}
-
 function drawEllipse(ctx, x, y, rx, ry) {
   ctx.beginPath();
   ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
@@ -136,21 +115,22 @@ function drawEllipse(ctx, x, y, rx, ry) {
 export function drawSlime(ctx, slime, now) {
   const { position, angle } = slime.body;
   const { scaleX, scaleY } = getSlimeRenderScale(slime, now);
+  const expression = getExpression(slime, now, isResting(slime));
 
   ctx.save();
   ctx.translate(position.x, position.y);
   ctx.rotate(angle);
   ctx.scale(scaleX, scaleY);
-  drawSlimeArt(ctx, slime.radius, slime.color);
+  drawSlimeArt(ctx, slime.radius, slime.color, expression);
   ctx.restore();
 }
 
 /** Draws the pending (not-yet-dropped) slime, translucent, at a fixed height. */
-export function drawPendingSlime(ctx, x, y, radius, color) {
+export function drawPendingSlime(ctx, x, y, radius, color, expression) {
   ctx.save();
   ctx.globalAlpha = 0.85;
   ctx.translate(x, y);
-  drawSlimeArt(ctx, radius, color);
+  drawSlimeArt(ctx, radius, color, expression);
   ctx.restore();
 }
 
@@ -183,6 +163,6 @@ export function renderScene(ctx, { slimes, pending, effects = [] }, now) {
   }
 
   if (pending) {
-    drawPendingSlime(ctx, pending.x, pending.y, pending.radius, pending.color);
+    drawPendingSlime(ctx, pending.x, pending.y, pending.radius, pending.color, pending.expression);
   }
 }

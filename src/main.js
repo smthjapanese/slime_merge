@@ -66,7 +66,14 @@ function spawnPending(x) {
   // a physics body — the body is only created once the slime is dropped.
   const preview = createSlime(level, x, pendingY());
   World.remove(world, preview.body); // never actually simulate the preview
-  pending = { level, x, y: pendingY(), radius: preview.radius, color: preview.color };
+  pending = {
+    level,
+    x,
+    y: pendingY(),
+    radius: preview.radius,
+    color: preview.color,
+    expression: preview.baseExpression,
+  };
   setNextPreview(preview.radius, preview.color);
 }
 

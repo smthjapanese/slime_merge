@@ -3,6 +3,7 @@
 // everything here only feeds a render-time transform (see render.js).
 
 import Matter from 'matter-js';
+import { triggerSurprised } from './face.js';
 
 const { Events } = Matter;
 
@@ -37,6 +38,7 @@ function triggerSquash(body, impactSpeed, now) {
   const factor = Math.max(MIN_SQUASH_FACTOR, Math.min(1, impactSpeed / SQUASH_SPEED_FOR_MAX));
   wrapper.squashStartTime = now;
   wrapper.squashAmount = BASE_SQUASH_AMOUNT * factor;
+  triggerSurprised(wrapper, now);
 }
 
 /**
@@ -60,9 +62,14 @@ const IDLE_PERIOD_MS = 2600;
 // purposes — fast-moving/falling slimes skip idle wobble entirely.
 const IDLE_SPEED_THRESHOLD = 0.08;
 
+/** True once a slime's physics speed has settled low enough to count as "at rest". */
+export function isResting(slime) {
+  return slime.body.speed < IDLE_SPEED_THRESHOLD;
+}
+
 /** Small sinusoidal squash/stretch for a resting slime; 0 while it's moving. */
 export function getIdleAmount(slime, now) {
-  if (slime.body.speed > IDLE_SPEED_THRESHOLD) return 0;
+  if (!isResting(slime)) return 0;
   const angle = (now / IDLE_PERIOD_MS) * Math.PI * 2 + slime.idlePhase;
   return IDLE_AMPLITUDE * Math.sin(angle);
 }

@@ -5,6 +5,7 @@ import Matter from 'matter-js';
 import { MAX_LEVEL_INDEX, createSlime } from './entities.js';
 import { addScore } from './state.js';
 import { createMergeFlash } from './effects.js';
+import { triggerDizzy } from './face.js';
 
 const { Events, World } = Matter;
 
@@ -53,6 +54,7 @@ function tryMerge(bodyA, bodyB, world, slimes, effects) {
   if (currentLevel < MAX_LEVEL_INDEX) {
     const merged = createSlime(nextLevel, midX, midY);
     merged.spawnedAt = now; // drives the pop-in scale-up in animation.js
+    triggerDizzy(merged, now); // dazed for a beat right after merging
     World.add(world, merged.body);
     slimes.push(merged);
     flashRadius = merged.radius;
