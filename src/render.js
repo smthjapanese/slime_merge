@@ -171,7 +171,7 @@ export function drawPendingSlime(ctx, x, y, radius, color, expression) {
 }
 
 /** Draws an expanding, fading flash burst — played at a merge point. */
-function drawEffect(ctx, effect, now) {
+function drawFlashEffect(ctx, effect, now) {
   const t = effectProgress(effect, now);
   const eased = 1 - (1 - t) ** 2;
   const radius = effect.radius * (0.6 + eased * 0.9);
@@ -186,6 +186,41 @@ function drawEffect(ctx, effect, now) {
   ctx.restore();
 }
 
+// Keeps the callout's text (roughly half its font size tall) from rising
+// past the canvas edge for merges that happen close to the top of the jar.
+const COMBO_TEXT_TOP_MARGIN = 16;
+
+/** Draws a floating "×N" combo callout: pops in, drifts up, fades out. */
+function drawComboEffect(ctx, effect, now) {
+  const t = effectProgress(effect, now);
+  const eased = 1 - (1 - t) ** 2;
+  const riseY = Math.max(COMBO_TEXT_TOP_MARGIN, effect.y - eased * 36);
+  const scale = 1.25 - eased * 0.25;
+  const alpha = t < 0.65 ? 1 : 1 - (t - 0.65) / 0.35;
+
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, alpha);
+  ctx.translate(effect.x, riseY);
+  ctx.scale(scale, scale);
+  ctx.font = 'bold 24px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(20, 20, 30, 0.85)';
+  ctx.strokeText(`×${effect.combo}`, 0, 0);
+  ctx.fillStyle = '#ffd43b';
+  ctx.fillText(`×${effect.combo}`, 0, 0);
+  ctx.restore();
+}
+
+function drawTransientEffect(ctx, effect, now) {
+  if (effect.type === 'combo') {
+    drawComboEffect(ctx, effect, now);
+  } else {
+    drawFlashEffect(ctx, effect, now);
+  }
+}
+
 export function renderScene(ctx, { slimes, pending, effects = [] }, now) {
   clearScene(ctx);
   drawJar(ctx);
@@ -195,7 +230,7 @@ export function renderScene(ctx, { slimes, pending, effects = [] }, now) {
   }
 
   for (const effect of effects) {
-    drawEffect(ctx, effect, now);
+    drawTransientEffect(ctx, effect, now);
   }
 
   if (pending) {

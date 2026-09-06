@@ -3,12 +3,16 @@
 
 import Matter from 'matter-js';
 import { MAX_LEVEL_INDEX, createSlime } from './entities.js';
-import { addScore } from './state.js';
-import { createMergeFlash } from './effects.js';
+import { addScore, registerMergeForCombo } from './state.js';
+import { createMergeFlash, createComboText } from './effects.js';
 import { triggerDizzy } from './face.js';
 import { playMerge } from './sound.js';
 
 const { Events, World } = Matter;
+
+// Keeps the floating combo callout from rendering above the canvas edge
+// when a merge happens near the top of the jar (close to the spawner).
+const COMBO_TEXT_MIN_Y = 24;
 
 /**
  * Wires collisionStart handling onto `engine`. `slimes` is the live array of
@@ -61,12 +65,22 @@ function tryMerge(bodyA, bodyB, world, slimes, effects) {
     flashRadius = merged.radius;
   }
   effects.push(createMergeFlash(midX, midY, flashRadius, now));
-  playMerge(nextLevel);
+
+  // A chain of merges close together in time (typically one drop settling
+  // into several merges in a row) multiplies its own score and gets a
+  // floating "×N" callout — see state.js's registerMergeForCombo.
+  const combo = registerMergeForCombo(now);
+  if (combo >= 2) {
+    const comboTextY = Math.max(COMBO_TEXT_MIN_Y, midY - flashRadius - 12);
+    effects.push(createComboText(midX, comboTextY, combo, now));
+  }
+  playMerge(nextLevel, combo);
 
   // Max level (SLIME_LEVELS.length): no new slime is spawned, just the
   // score bonus below, using human-numbered levels (1-indexed) throughout —
-  // e.g. two level-1 slimes merging into level 2 score 2**2.
-  addScore(2 ** (nextLevel + 1));
+  // e.g. two level-1 slimes merging into level 2 score 2**2, multiplied by
+  // the current combo streak.
+  addScore(2 ** (nextLevel + 1) * combo);
 }
 
 function removeFromArray(array, item) {

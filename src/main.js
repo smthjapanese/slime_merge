@@ -9,7 +9,7 @@ import { setupMergeHandling } from './merge.js';
 import { setupLandingSquash } from './animation.js';
 import { pruneExpiredEffects } from './effects.js';
 import { checkGameOver } from './gameover.js';
-import { resetScore, setGameOver, isGameOverActive, getScore } from './state.js';
+import { resetScore, resetCombo, setGameOver, isGameOverActive, getScore } from './state.js';
 import { initUI, setNextPreview, showGameOver, hideGameOver } from './ui.js';
 import { playGameOver, primeAudio } from './sound.js';
 import {
@@ -124,6 +124,7 @@ function resetGame() {
   slimes.length = 0;
   effects.length = 0;
   resetScore();
+  resetCombo();
   setGameOver(false);
   startWorld();
   initSpawner(canvas.width / 2);
