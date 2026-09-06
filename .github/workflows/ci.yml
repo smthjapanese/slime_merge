@@ -13,7 +13,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # jsdom 30 (a test dependency) requires Node >=22.22.2 — it fails
+          # at import time on Node 20 with a cryptic undici/webidl error.
+          node-version: 22
           cache: npm
 
       - run: npm ci
