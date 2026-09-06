@@ -8,6 +8,7 @@ import {
   JAR_RIGHT,
   JAR_TOP,
   JAR_BOTTOM,
+  JAR_CORNER_RADIUS,
 } from './physics.js';
 import { getSlimeRenderScale, isResting } from './animation.js';
 import { effectProgress } from './effects.js';
@@ -18,16 +19,51 @@ export function clearScene(ctx) {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 }
 
-export function drawJar(ctx) {
-  ctx.save();
-  ctx.strokeStyle = '#7fa3d1';
-  ctx.lineWidth = 4;
+/**
+ * Traces the jar's boundary onto the current path: open top, straight side
+ * walls, rounded bottom-left/bottom-right corners (no lid, no sharp bottom
+ * corners — Fruit-Merge/Suika style). JAR_CORNER_RADIUS is shared with
+ * physics.js's corner-filler bodies so the drawn line always matches where
+ * a slime actually gets stopped.
+ */
+function traceJarPath(ctx) {
   ctx.beginPath();
   ctx.moveTo(JAR_LEFT, JAR_TOP);
-  ctx.lineTo(JAR_LEFT, JAR_BOTTOM);
-  ctx.lineTo(JAR_RIGHT, JAR_BOTTOM);
+  ctx.lineTo(JAR_LEFT, JAR_BOTTOM - JAR_CORNER_RADIUS);
+  ctx.arcTo(JAR_LEFT, JAR_BOTTOM, JAR_LEFT + JAR_CORNER_RADIUS, JAR_BOTTOM, JAR_CORNER_RADIUS);
+  ctx.lineTo(JAR_RIGHT - JAR_CORNER_RADIUS, JAR_BOTTOM);
+  ctx.arcTo(JAR_RIGHT, JAR_BOTTOM, JAR_RIGHT, JAR_BOTTOM - JAR_CORNER_RADIUS, JAR_CORNER_RADIUS);
   ctx.lineTo(JAR_RIGHT, JAR_TOP);
+}
+
+/**
+ * Draws the jar as a thick bevelled wall: a soft-shadowed dark outer stroke
+ * for visual thickness/depth, then a slimmer light stroke on the same path
+ * as a rim highlight.
+ */
+export function drawJar(ctx) {
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  traceJarPath(ctx);
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 3;
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = '#13253f';
   ctx.stroke();
+
+  // Crisp highlight pass — reset the shadow first so it doesn't double up.
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  traceJarPath(ctx);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#7fa3d1';
+  ctx.stroke();
+
   ctx.restore();
 }
 

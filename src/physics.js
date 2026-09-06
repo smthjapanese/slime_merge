@@ -2,7 +2,7 @@
 
 import Matter from 'matter-js';
 
-const { Engine, World, Bodies } = Matter;
+const { Engine, World, Bodies, Vertices } = Matter;
 
 export const CANVAS_WIDTH = 380;
 export const CANVAS_HEIGHT = 600;
@@ -24,6 +24,49 @@ export const JAR_TOP = JAR_BOTTOM - JAR_HEIGHT;
 // long ends the game.
 export const DANGER_LINE_RATIO = 0.85;
 export const DANGER_LINE_Y = JAR_BOTTOM - JAR_HEIGHT * DANGER_LINE_RATIO;
+
+// Rounding radius for the jar's two bottom corners (Fruit-Merge/Suika style
+// — no sharp corners at the bottom, top stays open). Shared with render.js
+// so the drawn outline and the invisible collision boundary always match:
+// see createCornerFiller() below for how the physics side uses it.
+export const JAR_CORNER_RADIUS = 28;
+
+const CORNER_SEGMENTS = 10;
+
+/**
+ * A rounded bottom corner needs the jar's interior to lose the small sliver
+ * between the sharp rectangular corner and the rounding arc — otherwise a
+ * slime could sit in that sharp corner while the art draws it as "outside"
+ * the rounded wall. leftWall/rightWall/floor below stay full sharp
+ * rectangles (simplest, no risk of opening a gap); this adds one small
+ * convex "wedge" body per bottom corner that plugs exactly that sliver, so
+ * the ball's actual reachable interior ends up rounded to match the art.
+ *
+ * `sharpCorner` is the rectangular interior corner being rounded off;
+ * the arc from `startAngle` to `endAngle` (radians, Matter/canvas
+ * convention) around `arcCenter` is tangent to the wall on one end and the
+ * floor on the other.
+ */
+function createCornerFiller(sharpCorner, arcCenter, startAngle, endAngle) {
+  const vertices = [{ x: sharpCorner.x, y: sharpCorner.y }];
+  for (let i = 0; i <= CORNER_SEGMENTS; i += 1) {
+    const angle = startAngle + ((endAngle - startAngle) * i) / CORNER_SEGMENTS;
+    vertices.push({
+      x: arcCenter.x + JAR_CORNER_RADIUS * Math.cos(angle),
+      y: arcCenter.y + JAR_CORNER_RADIUS * Math.sin(angle),
+    });
+  }
+
+  // fromVertices positions the body at (x, y) and re-centers the vertices
+  // around it — passing the vertices' own centroid keeps them exactly where
+  // they were authored above, in absolute world coordinates.
+  const centre = Vertices.centre(vertices);
+  return Bodies.fromVertices(centre.x, centre.y, [vertices], {
+    isStatic: true,
+    friction: 0.5,
+    restitution: 0.1,
+  });
+}
 
 /**
  * Builds a fresh Matter.js engine with static walls for the left, right and
@@ -63,7 +106,25 @@ export function createPhysicsWorld() {
     { ...wallOptions, label: 'wall-floor' }
   );
 
-  World.add(engine.world, [leftWall, rightWall, floor]);
+  // Plug the two bottom corners so the reachable interior is rounded to
+  // match the drawn outline (see createCornerFiller's doc comment above).
+  const bottomLeftFiller = createCornerFiller(
+    { x: JAR_LEFT, y: JAR_BOTTOM },
+    { x: JAR_LEFT + JAR_CORNER_RADIUS, y: JAR_BOTTOM - JAR_CORNER_RADIUS },
+    Math.PI,
+    Math.PI / 2
+  );
+  bottomLeftFiller.label = 'wall-corner-left';
+
+  const bottomRightFiller = createCornerFiller(
+    { x: JAR_RIGHT, y: JAR_BOTTOM },
+    { x: JAR_RIGHT - JAR_CORNER_RADIUS, y: JAR_BOTTOM - JAR_CORNER_RADIUS },
+    0,
+    Math.PI / 2
+  );
+  bottomRightFiller.label = 'wall-corner-right';
+
+  World.add(engine.world, [leftWall, rightWall, floor, bottomLeftFiller, bottomRightFiller]);
 
   return { engine, world: engine.world };
 }
