@@ -49,7 +49,7 @@ body {
 
 #danger-line {
   position: absolute;
-  border-top: 3px dashed rgba(255, 99, 99, 0.6);
+  border-top: 3px dashed rgba(255, 255, 255, 0.6);
   height: 0;
 }
 
