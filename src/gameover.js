@@ -3,7 +3,7 @@
 
 import { DANGER_LINE_Y } from './physics.js';
 
-const GAME_OVER_DELAY_MS = 2000;
+const GAME_OVER_DELAY_MS = 1000;
 
 /**
  * Call once per frame with the live `slimes` array and the current
