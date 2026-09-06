@@ -56,6 +56,24 @@ export function notifyGameReady() {
   ysdk?.features?.LoadingAPI?.ready();
 }
 
+/**
+ * Tells the platform active gameplay has (re)started, so it knows not to
+ * interrupt the player with an ad right now. Call whenever the physics
+ * world becomes playable again (initial load, restart, tab refocus).
+ */
+export function notifyGameplayStart() {
+  ysdk?.features?.GameplayAPI?.start();
+}
+
+/**
+ * Counterpart to notifyGameplayStart — call whenever gameplay pauses for a
+ * reason the platform should know about (game over, showing an ad, the tab
+ * going to the background).
+ */
+export function notifyGameplayStop() {
+  ysdk?.features?.GameplayAPI?.stop();
+}
+
 /** Reads the saved best score (player data if authorized, else localStorage). */
 export async function getBestScore() {
   if (player) {
@@ -95,22 +113,38 @@ export function isAdDueThisRestart() {
   return false;
 }
 
+// If the SDK never calls back at all (a real-world bug we've seen platforms
+// hit), this is the longest we'll let the restart button stay dead before
+// forcing it through anyway.
+const AD_CALLBACK_TIMEOUT_MS = 6000;
+
 /**
  * Shows a fullscreen interstitial ad, then calls `onDone` — whether the ad
  * played, failed, or the SDK isn't available at all. Callers should always
  * gate the actual restart behind `onDone` so a blocked/errored ad never
- * softlocks the game.
+ * softlocks the game. Guarded so `onDone` fires exactly once, even if the
+ * SDK both calls back AND we hit the timeout fallback.
  */
 export function showFullscreenAd(onDone) {
   if (!ysdk?.adv) {
     onDone();
     return;
   }
+
+  let settled = false;
+  const finish = () => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timeoutId);
+    onDone();
+  };
+  const timeoutId = setTimeout(finish, AD_CALLBACK_TIMEOUT_MS);
+
   ysdk.adv.showFullscreenAdv({
     callbacks: {
-      onClose: () => onDone(),
-      onError: () => onDone(),
-      onOffline: () => onDone(),
+      onClose: finish,
+      onError: finish,
+      onOffline: finish,
     },
   });
 }

@@ -7,14 +7,20 @@ const MUTE_KEY = 'slime-merge-muted';
 
 let muted = localStorage.getItem(MUTE_KEY) === '1';
 
+// Not every environment has Web Audio (older webviews, some test/CI
+// environments) — resolved once, so the rest of this module can just check
+// `AudioContextCtor` instead of every browser having its own quirk.
+const AudioContextCtor =
+  typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+
 // Created lazily on the first user gesture — browsers block audio contexts
 // from starting before one, and our first drop/click is exactly that gesture.
 let audioContext = null;
 
 function getAudioContext() {
+  if (!AudioContextCtor) return null;
   if (!audioContext) {
-    const Ctor = window.AudioContext || window.webkitAudioContext;
-    audioContext = new Ctor();
+    audioContext = new AudioContextCtor();
   }
   if (audioContext.state === 'suspended') {
     audioContext.resume();
@@ -60,22 +66,28 @@ export function vibrate(pattern) {
 function playTone({ startFreq, endFreq = startFreq, duration, volume = 0.2, type = 'sine' }) {
   if (muted) return;
   const ctx = getAudioContext();
-  const now = ctx.currentTime;
+  if (!ctx) return; // no Web Audio support — sound is a nice-to-have, never worth crashing over
 
-  const oscillator = ctx.createOscillator();
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(startFreq, now);
-  oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), now + duration);
+  try {
+    const now = ctx.currentTime;
 
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(volume, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    const oscillator = ctx.createOscillator();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(startFreq, now);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), now + duration);
 
-  oscillator.connect(gain);
-  gain.connect(ctx.destination);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-  oscillator.start(now);
-  oscillator.stop(now + duration);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + duration);
+  } catch (error) {
+    console.warn('[sound] playback failed, continuing without it:', error);
+  }
 }
 
 // Landing thuds fire on every collision — throttle so a settling pile

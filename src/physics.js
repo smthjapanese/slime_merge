@@ -1,6 +1,12 @@
 // Matter.js world setup: engine, gravity, and the static jar (container) walls.
 
 import Matter from 'matter-js';
+import decomp from 'poly-decomp';
+
+// The bottom-corner filler bodies below are built from raw vertices; Matter
+// needs poly-decomp wired in to decompose/validate them, otherwise it just
+// logs a "concave vertices" warning on every world creation.
+Matter.Common.setDecomp(decomp);
 
 const { Engine, World, Bodies, Vertices } = Matter;
 

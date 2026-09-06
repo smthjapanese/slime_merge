@@ -1,17 +1,23 @@
 {
   "name": "slime-merge",
-  "version": "0.1.0",
-  "description": "Slime Merge — physics sandbox prototype (stage 1: no merge logic yet)",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Slime Merge — a Suika/2048-style physics merge game built with Vite, vanilla JS and Matter.js, targeting Yandex Games.",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "matter-js": "^0.20.0"
+    "matter-js": "^0.20.0",
+    "poly-decomp": "^0.3.0"
   },
   "devDependencies": {
-    "vite": "^5.4.0"
+    "jsdom": "^30.0.1",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.9"
   }
 }

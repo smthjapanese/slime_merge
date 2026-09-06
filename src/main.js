@@ -15,6 +15,8 @@ import { playGameOver, primeAudio } from './sound.js';
 import {
   initYandexSDK,
   notifyGameReady,
+  notifyGameplayStart,
+  notifyGameplayStop,
   getBestScore,
   setBestScore,
   isAdDueThisRestart,
@@ -113,6 +115,7 @@ function startWorld() {
 
   runner = Runner.create();
   Runner.run(runner, engine);
+  notifyGameplayStart();
 }
 
 /** Full reset: clears the world, the jar is rebuilt, score and slimes start over. */
@@ -146,6 +149,24 @@ setupInput(canvas, {
 
 initUI({ onRestart: handleRestartRequest });
 
+// Pause physics while the tab/app is backgrounded — otherwise a slime can
+// fall through several seconds of un-rendered simulation in one jump when
+// the player comes back (or the browser throttles the timestep unevenly).
+let pausedForVisibility = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (!isGameOverActive()) {
+      Runner.stop(runner);
+      notifyGameplayStop();
+      pausedForVisibility = true;
+    }
+  } else if (pausedForVisibility) {
+    pausedForVisibility = false;
+    Runner.run(runner, engine);
+    notifyGameplayStart();
+  }
+});
+
 startWorld();
 initSpawner(canvas.width / 2);
 
@@ -155,6 +176,7 @@ function loop(now) {
   if (!isGameOverActive() && checkGameOver(slimes, now)) {
     setGameOver(true);
     Runner.stop(runner);
+    notifyGameplayStop();
     playGameOver();
     const finalScore = getScore();
     if (finalScore > bestScore) {
