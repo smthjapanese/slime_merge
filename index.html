@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Slime Merge — Physics Sandbox</title>
+    <!--
+      Yandex Games platform SDK. Loaded synchronously (no async/defer) so
+      window.YaGames is already defined by the time our module script runs.
+      Outside the Yandex Games iframe this request/script simply fails to
+      resolve — yandex.js treats a missing window.YaGames as "no platform"
+      and no-ops instead of throwing.
+    -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+    <script type="module" crossorigin src="./assets/index-CLjGH_Mr.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BNhBHOzK.css">
+  </head>
+  <body>
+    <div id="app">
+      <!--
+        The stage is a fixed 380x600 logical box (matches the canvas's
+        drawing-buffer resolution). ui.js scales the whole box with a CSS
+        transform to fit the viewport, so every child positioned in logical
+        px here — the canvas, the danger line, the HUD — scales as one unit.
+      -->
+      <div id="stage">
+        <canvas id="game-canvas" width="380" height="600"></canvas>
+
+        <div id="hud">
+          <div id="danger-line"></div>
+
+          <div id="score-hud">Счёт: <span id="score-value">0</span></div>
+
+          <button id="pause-button" type="button" class="hidden" aria-label="Пауза">⏸</button>
+
+          <div id="next-hud">
+            <div id="next-preview-circle"></div>
+          </div>
+
+          <div id="main-menu" class="overlay-screen">
+            <div class="overlay-panel">
+              <button id="start-button" type="button" class="panel-button">Играть</button>
+              <button id="menu-settings-button" type="button" class="panel-button panel-button--secondary">
+                Настройки
+              </button>
+            </div>
+          </div>
+
+          <div id="pause-overlay" class="overlay-screen hidden">
+            <div class="overlay-panel">
+              <h2>Пауза</h2>
+              <button id="resume-button" type="button" class="panel-button">Продолжить</button>
+              <button id="pause-restart-button" type="button" class="panel-button">Начать заново</button>
+              <button id="pause-settings-button" type="button" class="panel-button panel-button--secondary">
+                Настройки
+              </button>
+            </div>
+          </div>
+
+          <div id="settings-overlay" class="overlay-screen hidden">
+            <div class="overlay-panel">
+              <h2>Настройки</h2>
+              <button id="sound-toggle-button" type="button" class="panel-button">Звук: вкл</button>
+              <button id="settings-back-button" type="button" class="panel-button panel-button--secondary">
+                Назад
+              </button>
+            </div>
+          </div>
+
+          <div id="game-over" class="overlay-screen hidden">
+            <div class="overlay-panel">
+              <h2>Игра окончена</h2>
+              <p>Счёт: <span id="final-score-value">0</span></p>
+              <p>Лучший счёт: <span id="best-score-value">0</span></p>
+              <button id="restart-button" type="button" class="panel-button">Играть снова</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
