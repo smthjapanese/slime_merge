@@ -2,7 +2,7 @@
 
 import Matter from 'matter-js';
 import { createPhysicsWorld, JAR_TOP } from './physics.js';
-import { createSlime, randomSpawnLevel } from './entities.js';
+import { createSlime, previewSlime, randomSpawnLevel } from './entities.js';
 import { setupInput } from './input.js';
 import { renderScene } from './render.js';
 import { setupMergeHandling } from './merge.js';
@@ -11,6 +11,7 @@ import { pruneExpiredEffects } from './effects.js';
 import { checkGameOver } from './gameover.js';
 import { resetScore, setGameOver, isGameOverActive, getScore } from './state.js';
 import { initUI, setNextPreview, showGameOver, hideGameOver } from './ui.js';
+import { playGameOver, primeAudio } from './sound.js';
 import {
   initYandexSDK,
   notifyGameReady,
@@ -42,9 +43,15 @@ const slimes = [];
 // mutate-in-place pattern as `slimes`.
 const effects = [];
 
-// The slime "loaded" in the spawner, waiting to be dropped. Has no physics
-// body yet — it's purely a render-time concept until the player drops it.
+// The slime "loaded" in the spawner, hanging above the jar and waiting to
+// be dropped. Has no physics body yet — it's purely a render-time concept
+// until the player drops it.
 let pending = null;
+
+// The level after `pending` — only its level index is needed ahead of time;
+// it becomes the next `pending` once the current one is dropped. Shown as
+// a small swatch in the HUD so the player can plan one slime further ahead.
+let upcomingLevel = null;
 
 // Kicked off immediately; game start doesn't wait on it. Best-score reads
 // and the mandatory LoadingAPI.ready() signal chain off it so they never
@@ -60,25 +67,36 @@ function pendingY() {
   return JAR_TOP - PENDING_Y_OFFSET;
 }
 
+/** Rolls a new upcoming level and reflects it in the HUD's "next" swatch. */
+function rollUpcoming() {
+  upcomingLevel = randomSpawnLevel(getScore());
+  const preview = previewSlime(upcomingLevel);
+  setNextPreview(preview.radius, preview.color);
+}
+
+/** Promotes the current `upcomingLevel` into the hanging `pending` slime, then rolls a new upcoming one. */
 function spawnPending(x) {
-  const level = randomSpawnLevel();
-  // Reuse createSlime just to read the level's radius/color without adding
-  // a physics body — the body is only created once the slime is dropped.
-  const preview = createSlime(level, x, pendingY());
-  World.remove(world, preview.body); // never actually simulate the preview
+  const preview = previewSlime(upcomingLevel);
   pending = {
-    level,
+    level: upcomingLevel,
     x,
     y: pendingY(),
     radius: preview.radius,
     color: preview.color,
-    expression: preview.baseExpression,
+    expression: preview.expression,
   };
-  setNextPreview(preview.radius, preview.color);
+  rollUpcoming();
+}
+
+/** First-time / post-restart setup: seeds the upcoming slot before promoting it. */
+function initSpawner(x) {
+  rollUpcoming();
+  spawnPending(x);
 }
 
 function dropSlime(x) {
   if (!pending || isGameOverActive()) return;
+  primeAudio(); // must happen synchronously inside this user-gesture call chain
   const slime = createSlime(pending.level, x, pendingY());
   World.add(world, slime.body);
   slimes.push(slime);
@@ -105,7 +123,7 @@ function resetGame() {
   resetScore();
   setGameOver(false);
   startWorld();
-  spawnPending(canvas.width / 2);
+  initSpawner(canvas.width / 2);
   hideGameOver();
 }
 
@@ -129,7 +147,7 @@ setupInput(canvas, {
 initUI({ onRestart: handleRestartRequest });
 
 startWorld();
-spawnPending(canvas.width / 2);
+initSpawner(canvas.width / 2);
 
 let firstFrameRendered = false;
 
@@ -137,6 +155,7 @@ function loop(now) {
   if (!isGameOverActive() && checkGameOver(slimes, now)) {
     setGameOver(true);
     Runner.stop(runner);
+    playGameOver();
     const finalScore = getScore();
     if (finalScore > bestScore) {
       bestScore = finalScore;

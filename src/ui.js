@@ -9,6 +9,7 @@ import {
   JAR_WIDTH,
   DANGER_LINE_Y,
 } from './physics.js';
+import { isMuted, toggleMuted, primeAudio } from './sound.js';
 
 const stage = document.getElementById('stage');
 const scoreValueEl = document.getElementById('score-value');
@@ -18,6 +19,7 @@ const gameOverEl = document.getElementById('game-over');
 const finalScoreValueEl = document.getElementById('final-score-value');
 const bestScoreValueEl = document.getElementById('best-score-value');
 const restartButton = document.getElementById('restart-button');
+const muteButton = document.getElementById('mute-button');
 
 // Leaves a small margin around the scaled stage so it never touches the
 // screen edges exactly.
@@ -31,6 +33,13 @@ export function initUI({ onRestart }) {
 
   restartButton.addEventListener('click', onRestart);
 
+  updateMuteIcon();
+  muteButton.addEventListener('click', () => {
+    primeAudio(); // in case this is the very first user gesture of the session
+    toggleMuted();
+    updateMuteIcon();
+  });
+
   // The danger line's position is fixed in logical coordinates, same as the
   // jar itself, so it only needs to be placed once — the whole stage
   // (canvas + overlay) scales together as one unit on resize.
@@ -39,6 +48,11 @@ export function initUI({ onRestart }) {
   dangerLineEl.style.top = `${DANGER_LINE_Y}px`;
 
   setupResize();
+}
+
+function updateMuteIcon() {
+  muteButton.textContent = isMuted() ? '🔇' : '🔊';
+  muteButton.setAttribute('aria-label', isMuted() ? 'Включить звук' : 'Выключить звук');
 }
 
 /** Updates the "next slime" preview swatch in the HUD's top-left corner. */

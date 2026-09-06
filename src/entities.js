@@ -21,19 +21,48 @@ export const SLIME_LEVELS = [
 
 export const MAX_LEVEL_INDEX = SLIME_LEVELS.length - 1;
 
-// Only the first 4 levels are ever dropped by the spawner. Weighted so lower
-// levels drop more often (index 0 = human "level 1", most common).
-const SPAWN_WEIGHTS = [0.4, 0.3, 0.2, 0.1];
+// Only the first 4 levels are ever dropped by the spawner. Weights ramp
+// from an easy early-game mix toward a harder one as `score` climbs, so the
+// spawner doesn't keep handing out mostly tiny slimes forever — see
+// randomSpawnLevel(). Both arrays sum to 1.
+const SPAWN_WEIGHTS_EARLY = [0.4, 0.3, 0.2, 0.1];
+const SPAWN_WEIGHTS_LATE = [0.15, 0.25, 0.3, 0.3];
+const DIFFICULTY_RAMP_SCORE = 2000;
 
-export function randomSpawnLevel() {
+export function randomSpawnLevel(score = 0) {
+  const t = Math.min(1, Math.max(0, score / DIFFICULTY_RAMP_SCORE));
   const roll = Math.random();
   let cumulative = 0;
-  for (let i = 0; i < SPAWN_WEIGHTS.length; i += 1) {
-    cumulative += SPAWN_WEIGHTS[i];
+  for (let i = 0; i < SPAWN_WEIGHTS_EARLY.length; i += 1) {
+    const weight = SPAWN_WEIGHTS_EARLY[i] + (SPAWN_WEIGHTS_LATE[i] - SPAWN_WEIGHTS_EARLY[i]) * t;
+    cumulative += weight;
     if (roll < cumulative) return i;
   }
   // Guards against floating-point rounding leaving a tiny gap at roll ~= 1.
-  return SPAWN_WEIGHTS.length - 1;
+  return SPAWN_WEIGHTS_EARLY.length - 1;
+}
+
+function getLevelDef(levelIndex) {
+  const def = SLIME_LEVELS[levelIndex];
+  if (!def) {
+    throw new Error(`Unknown slime level: ${levelIndex}`);
+  }
+  return def;
+}
+
+/**
+ * Read-only metadata for a level (radius/color) plus a freshly-rolled
+ * expression, with no physics body attached. Used for the spawner's HUD
+ * "next" swatch and for the hanging pending slime before it's dropped.
+ */
+export function previewSlime(levelIndex) {
+  const def = getLevelDef(levelIndex);
+  return {
+    level: def.level,
+    radius: def.radius,
+    color: def.color,
+    expression: pickRandomBaseExpression(),
+  };
 }
 
 /**
@@ -46,10 +75,7 @@ export function randomSpawnLevel() {
  * without keeping a separate body->wrapper lookup table in sync.
  */
 export function createSlime(levelIndex, x, y) {
-  const def = SLIME_LEVELS[levelIndex];
-  if (!def) {
-    throw new Error(`Unknown slime level: ${levelIndex}`);
-  }
+  const def = getLevelDef(levelIndex);
 
   const body = Bodies.circle(x, y, def.radius, {
     restitution: 0.2,

@@ -4,6 +4,7 @@
 
 import Matter from 'matter-js';
 import { triggerSurprised } from './face.js';
+import { playLandThud } from './sound.js';
 
 const { Events } = Matter;
 
@@ -14,6 +15,10 @@ const BASE_SQUASH_AMOUNT = 0.28;
 const MIN_SQUASH_FACTOR = 0.3;
 // Impact speed (Matter units) at/above which a landing gets the full squash.
 const SQUASH_SPEED_FOR_MAX = 9;
+// Below this impact speed, a contact is just gentle resting jitter — skip
+// the thud sound (squash/surprise still apply, just more subtly) so a
+// settling pile doesn't turn into a wall of tiny blips.
+const THUD_MIN_SPEED = 1.5;
 
 /**
  * Wires a collisionStart handler that kicks off a squash animation on any
@@ -28,6 +33,9 @@ export function setupLandingSquash(engine) {
       const impactSpeed = Math.max(pair.bodyA.speed, pair.bodyB.speed);
       triggerSquash(pair.bodyA, impactSpeed, now);
       triggerSquash(pair.bodyB, impactSpeed, now);
+      if (impactSpeed >= THUD_MIN_SPEED) {
+        playLandThud(now);
+      }
     }
   });
 }

@@ -6,6 +6,7 @@ import { MAX_LEVEL_INDEX, createSlime } from './entities.js';
 import { addScore } from './state.js';
 import { createMergeFlash } from './effects.js';
 import { triggerDizzy } from './face.js';
+import { playMerge } from './sound.js';
 
 const { Events, World } = Matter;
 
@@ -60,6 +61,7 @@ function tryMerge(bodyA, bodyB, world, slimes, effects) {
     flashRadius = merged.radius;
   }
   effects.push(createMergeFlash(midX, midY, flashRadius, now));
+  playMerge(nextLevel);
 
   // Max level (SLIME_LEVELS.length): no new slime is spawned, just the
   // score bonus below, using human-numbered levels (1-indexed) throughout —
