@@ -4,7 +4,7 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: #1a1a2e;
+  background: #101d30;
   overscroll-behavior: none;
   touch-action: none;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -34,7 +34,7 @@ body {
   left: 0;
   width: 380px;
   height: 600px;
-  background: #0f0f1e;
+  background: linear-gradient(to bottom, #122842 0%, #1f4f7a 100%);
   touch-action: none;
 }
 
@@ -85,7 +85,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 20, 0.75);
+  background: rgba(8, 15, 26, 0.75);
   pointer-events: auto;
 }
 
@@ -101,7 +101,7 @@ body {
   gap: 14px;
   padding: 28px 36px;
   border-radius: 16px;
-  background: #23233a;
+  background: #1c2b40;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   text-align: center;
 }

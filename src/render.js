@@ -20,7 +20,7 @@ export function clearScene(ctx) {
 
 export function drawJar(ctx) {
   ctx.save();
-  ctx.strokeStyle = '#4a4a6a';
+  ctx.strokeStyle = '#7fa3d1';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(JAR_LEFT, JAR_TOP);
