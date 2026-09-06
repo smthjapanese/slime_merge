@@ -1,5 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { playLandThud, playMerge, playGameOver, isMuted, setMuted, toggleMuted } from '../src/sound.js';
+import {
+  playLandThud,
+  playMerge,
+  playGameOver,
+  startBackgroundMusic,
+  stopBackgroundMusic,
+  isMuted,
+  setMuted,
+  toggleMuted,
+} from '../src/sound.js';
 
 // jsdom has no Web Audio implementation at all — this environment is exactly
 // the "AudioContext unavailable" case sound.js needs to degrade gracefully
@@ -16,6 +25,17 @@ describe('sound effects without Web Audio support', () => {
     expect(() => playLandThud(performance.now())).not.toThrow();
     expect(() => playMerge(3)).not.toThrow();
     expect(() => playGameOver()).not.toThrow();
+  });
+});
+
+describe('background music without Web Audio support', () => {
+  it('never throws across start/stop and mute toggles', () => {
+    setMuted(false);
+    expect(() => startBackgroundMusic()).not.toThrow();
+    expect(() => toggleMuted()).not.toThrow(); // mutes while "playing"
+    expect(() => toggleMuted()).not.toThrow(); // unmutes, should try to resume
+    expect(() => stopBackgroundMusic()).not.toThrow();
+    setMuted(false);
   });
 });
 

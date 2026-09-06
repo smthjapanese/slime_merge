@@ -52,7 +52,7 @@ body {
 
 #danger-line {
   position: absolute;
-  border-top: 3px dashed rgba(30, 30, 40, 0.45);
+  border-top: 3px solid rgba(30, 30, 40, 0.45);
   height: 0;
 }
 
@@ -137,11 +137,6 @@ body {
   background: #1c2b40;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   text-align: center;
-}
-
-.overlay-panel h1 {
-  margin: 0;
-  font-size: 30px;
 }
 
 .overlay-panel h2 {

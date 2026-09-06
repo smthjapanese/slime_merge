@@ -9,6 +9,7 @@ import {
   JAR_TOP,
   JAR_BOTTOM,
   JAR_CORNER_RADIUS,
+  WALL_VISUAL_WIDTH,
 } from './physics.js';
 import { getSlimeRenderScale, isResting } from './animation.js';
 import { effectProgress } from './effects.js';
@@ -62,7 +63,7 @@ export function drawJar(ctx) {
   ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
   ctx.shadowBlur = 8;
   ctx.shadowOffsetY = 3;
-  ctx.lineWidth = 12;
+  ctx.lineWidth = WALL_VISUAL_WIDTH;
   ctx.strokeStyle = '#13253f';
   ctx.stroke();
 

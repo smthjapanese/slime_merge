@@ -18,7 +18,7 @@ const SQUASH_SPEED_FOR_MAX = 9;
 // Below this impact speed, a contact is just gentle resting jitter — skip
 // the thud sound (squash/surprise still apply, just more subtly) so a
 // settling pile doesn't turn into a wall of tiny blips.
-const THUD_MIN_SPEED = 1.5;
+const THUD_MIN_SPEED = 0.8;
 
 /**
  * Wires a collisionStart handler that kicks off a squash animation on any

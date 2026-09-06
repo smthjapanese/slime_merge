@@ -1,7 +1,7 @@
-// Procedural sound effects (Web Audio oscillators — no audio asset files,
-// keeps the Yandex Games build tiny) plus haptic feedback. Both are gated
-// behind the same mute flag, persisted so the player's choice survives a
-// reload.
+// Procedural sound effects and background music (Web Audio oscillators — no
+// audio asset files, keeps the Yandex Games build tiny) plus haptic
+// feedback. All of it is gated behind the same mute flag, persisted so the
+// player's choice survives a reload.
 
 const MUTE_KEY = 'slime-merge-muted';
 
@@ -45,6 +45,11 @@ export function isMuted() {
 export function setMuted(value) {
   muted = value;
   localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
+  if (muted) {
+    stopMusicPlayback();
+  } else if (musicRequested) {
+    scheduleNextChord();
+  }
 }
 
 export function toggleMuted() {
@@ -60,8 +65,8 @@ export function vibrate(pattern) {
 
 /**
  * Plays a short tone: a triangle-wave oscillator with an exponential decay
- * envelope, optionally sliding to a different frequency. All effects below
- * are built from this one primitive.
+ * envelope, optionally sliding to a different frequency. All one-shot
+ * effects below are built from this one primitive.
  */
 function playTone({ startFreq, endFreq = startFreq, duration, volume = 0.2, type = 'sine' }) {
   if (muted) return;
@@ -99,7 +104,7 @@ let lastThudAt = 0;
 export function playLandThud(now) {
   if (now - lastThudAt < THUD_COOLDOWN_MS) return;
   lastThudAt = now;
-  playTone({ startFreq: 160, endFreq: 90, duration: 0.09, volume: 0.12, type: 'triangle' });
+  playTone({ startFreq: 160, endFreq: 90, duration: 0.1, volume: 0.16, type: 'triangle' });
 }
 
 /** Rising chime for a merge — pitch climbs with the resulting level. */
@@ -113,4 +118,86 @@ export function playMerge(level) {
 export function playGameOver() {
   playTone({ startFreq: 420, endFreq: 120, duration: 0.5, volume: 0.2, type: 'sawtooth' });
   vibrate([50, 40, 50]);
+}
+
+// --- Background music ------------------------------------------------------
+//
+// A slow, quiet ambient pad loop — a handful of warm chords cycling
+// continuously so the jar never sits in silence. Deliberately simple: each
+// chord is just a few detuned sine waves with a slow fade in/out, scheduled
+// back-to-back via setTimeout (a music-precision scheduler would be
+// overkill for a loop this slow and ambient).
+
+const MUSIC_CHORD_DURATION_S = 4.5;
+const MUSIC_FADE_S = 1.5;
+const MUSIC_VOLUME = 0.05; // quiet — ambience, not a soundtrack competing with SFX
+
+// Warm, non-resolving triads/add9 voicings, picked to loop without feeling
+// like it's "ending" on any one chord.
+const MUSIC_CHORDS_HZ = [
+  [130.81, 196.0, 246.94, 329.63], // C3 G3 B3 E4
+  [146.83, 220.0, 277.18, 349.23], // D3 A3 C#4 F4
+  [164.81, 246.94, 293.66, 392.0], // E3 B3 D4 G4
+  [110.0, 164.81, 220.0, 293.66], // A2 E3 A3 D4
+];
+
+let musicRequested = false; // has the game asked for music at all this session
+let musicChordIndex = 0;
+let musicTimeoutId = null;
+
+function scheduleNextChord() {
+  const ctx = getAudioContext();
+  if (!ctx || muted || !musicRequested) return;
+
+  try {
+    const now = ctx.currentTime;
+    const freqs = MUSIC_CHORDS_HZ[musicChordIndex % MUSIC_CHORDS_HZ.length];
+    musicChordIndex += 1;
+    const noteVolume = MUSIC_VOLUME / freqs.length;
+
+    for (const freq of freqs) {
+      const oscillator = ctx.createOscillator();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(freq, now);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(noteVolume, now + MUSIC_FADE_S);
+      gain.gain.setValueAtTime(noteVolume, now + MUSIC_CHORD_DURATION_S - MUSIC_FADE_S);
+      gain.gain.linearRampToValueAtTime(0, now + MUSIC_CHORD_DURATION_S);
+
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + MUSIC_CHORD_DURATION_S + 0.1);
+    }
+  } catch (error) {
+    console.warn('[sound] music playback failed, continuing without it:', error);
+  }
+
+  musicTimeoutId = setTimeout(scheduleNextChord, MUSIC_CHORD_DURATION_S * 1000);
+}
+
+function stopMusicPlayback() {
+  if (musicTimeoutId != null) {
+    clearTimeout(musicTimeoutId);
+    musicTimeoutId = null;
+  }
+}
+
+/**
+ * Starts the looping ambient background track if it isn't already running.
+ * Safe to call repeatedly (e.g. on every resume) — a no-op once the loop is
+ * going. Call from a user-gesture path alongside primeAudio().
+ */
+export function startBackgroundMusic() {
+  musicRequested = true;
+  if (muted || musicTimeoutId != null) return;
+  scheduleNextChord();
+}
+
+/** Stops the background loop entirely (not just muting it). */
+export function stopBackgroundMusic() {
+  musicRequested = false;
+  stopMusicPlayback();
 }

@@ -24,7 +24,7 @@ import {
   showGameOver,
   hideGameOver,
 } from './ui.js';
-import { playGameOver, primeAudio } from './sound.js';
+import { playGameOver, primeAudio, startBackgroundMusic } from './sound.js';
 import {
   initYandexSDK,
   notifyGameReady,
@@ -145,6 +145,7 @@ function resumeGameplay() {
   Runner.run(runner, engine);
   notifyGameplayStart();
   setPauseButtonVisible(true);
+  startBackgroundMusic(); // no-op once the loop is already going
 }
 
 /** Full reset: rebuilds the world/jar, score and slimes start over, and play resumes immediately. */

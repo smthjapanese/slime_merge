@@ -18,6 +18,12 @@ export const JAR_WIDTH = 340;
 export const JAR_HEIGHT = 500;
 export const WALL_THICKNESS = 20;
 
+// Width of the drawn wall stroke (render.js's dark outer pass), centered on
+// the jar boundary path — half of it sits inside the interior, half outside.
+// Shared so HUD elements (the danger line) can inset themselves to stay
+// strictly within the beige interior instead of poking past the wall.
+export const WALL_VISUAL_WIDTH = 12;
+
 // Jar is horizontally centered and sits near the bottom of the canvas,
 // leaving an open area above it for the spawner to hang the pending slime.
 export const JAR_LEFT = (CANVAS_WIDTH - JAR_WIDTH) / 2;

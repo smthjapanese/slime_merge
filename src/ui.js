@@ -9,6 +9,7 @@ import {
   JAR_LEFT,
   JAR_WIDTH,
   DANGER_LINE_Y,
+  WALL_VISUAL_WIDTH,
 } from './physics.js';
 import { isMuted, toggleMuted, primeAudio } from './sound.js';
 
@@ -78,9 +79,12 @@ export function initUI({ onStart, onPauseRequest, onResumeRequest, onRestart }) 
 
   // The danger line's position is fixed in logical coordinates, same as the
   // jar itself, so it only needs to be placed once — the whole stage
-  // (canvas + overlay) scales together as one unit on resize.
-  dangerLineEl.style.left = `${JAR_LEFT}px`;
-  dangerLineEl.style.width = `${JAR_WIDTH}px`;
+  // (canvas + overlay) scales together as one unit on resize. Inset by half
+  // the wall's visual thickness so the line stays strictly inside the
+  // beige interior instead of poking past the wall on either side.
+  const wallInset = WALL_VISUAL_WIDTH / 2;
+  dangerLineEl.style.left = `${JAR_LEFT + wallInset}px`;
+  dangerLineEl.style.width = `${JAR_WIDTH - wallInset * 2}px`;
   dangerLineEl.style.top = `${DANGER_LINE_Y}px`;
 
   setupResize();
