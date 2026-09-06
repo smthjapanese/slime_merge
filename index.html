@@ -33,18 +33,49 @@
 
           <div id="score-hud">Счёт: <span id="score-value">0</span></div>
 
-          <button id="mute-button" type="button" aria-label="Выключить звук">🔊</button>
+          <button id="pause-button" type="button" class="hidden" aria-label="Пауза">⏸</button>
 
           <div id="next-hud">
             <div id="next-preview-circle"></div>
           </div>
 
-          <div id="game-over" class="hidden">
-            <div class="game-over-panel">
+          <div id="main-menu" class="overlay-screen">
+            <div class="overlay-panel">
+              <h1>Slime Merge</h1>
+              <button id="start-button" type="button" class="panel-button">Играть</button>
+              <button id="menu-settings-button" type="button" class="panel-button panel-button--secondary">
+                Настройки
+              </button>
+            </div>
+          </div>
+
+          <div id="pause-overlay" class="overlay-screen hidden">
+            <div class="overlay-panel">
+              <h2>Пауза</h2>
+              <button id="resume-button" type="button" class="panel-button">Продолжить</button>
+              <button id="pause-restart-button" type="button" class="panel-button">Начать заново</button>
+              <button id="pause-settings-button" type="button" class="panel-button panel-button--secondary">
+                Настройки
+              </button>
+            </div>
+          </div>
+
+          <div id="settings-overlay" class="overlay-screen hidden">
+            <div class="overlay-panel">
+              <h2>Настройки</h2>
+              <button id="sound-toggle-button" type="button" class="panel-button">Звук: вкл</button>
+              <button id="settings-back-button" type="button" class="panel-button panel-button--secondary">
+                Назад
+              </button>
+            </div>
+          </div>
+
+          <div id="game-over" class="overlay-screen hidden">
+            <div class="overlay-panel">
               <h2>Игра окончена</h2>
               <p>Счёт: <span id="final-score-value">0</span></p>
               <p>Лучший счёт: <span id="best-score-value">0</span></p>
-              <button id="restart-button" type="button">Играть снова</button>
+              <button id="restart-button" type="button" class="panel-button">Играть снова</button>
             </div>
           </div>
         </div>

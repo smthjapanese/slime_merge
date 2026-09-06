@@ -1,5 +1,6 @@
-// DOM overlay: score readout, next-slime preview, danger line and the
-// game-over screen. Pure DOM/CSS here — no physics or game rules.
+// DOM overlay: score readout, next-slime preview, danger line, and the
+// menu/pause/settings/game-over screens. Pure DOM/CSS here — no physics or
+// game rules; main.js owns what each button actually does to the game.
 
 import { onScoreChange, getScore } from './state.js';
 import {
@@ -15,29 +16,64 @@ const stage = document.getElementById('stage');
 const scoreValueEl = document.getElementById('score-value');
 const nextPreviewEl = document.getElementById('next-preview-circle');
 const dangerLineEl = document.getElementById('danger-line');
+const pauseButton = document.getElementById('pause-button');
+
+const mainMenuEl = document.getElementById('main-menu');
+const startButton = document.getElementById('start-button');
+const menuSettingsButton = document.getElementById('menu-settings-button');
+
+const pauseOverlayEl = document.getElementById('pause-overlay');
+const resumeButton = document.getElementById('resume-button');
+const pauseRestartButton = document.getElementById('pause-restart-button');
+const pauseSettingsButton = document.getElementById('pause-settings-button');
+
+const settingsOverlayEl = document.getElementById('settings-overlay');
+const soundToggleButton = document.getElementById('sound-toggle-button');
+const settingsBackButton = document.getElementById('settings-back-button');
+
 const gameOverEl = document.getElementById('game-over');
 const finalScoreValueEl = document.getElementById('final-score-value');
 const bestScoreValueEl = document.getElementById('best-score-value');
 const restartButton = document.getElementById('restart-button');
-const muteButton = document.getElementById('mute-button');
 
 // Leaves a small margin around the scaled stage so it never touches the
 // screen edges exactly.
 const VIEWPORT_MARGIN = 0.96;
 
-export function initUI({ onRestart }) {
+/**
+ * `onStart`/`onPauseRequest`/`onResumeRequest`/`onRestart` are the game-flow
+ * callbacks main.js supplies. Settings is purely a UI concern (it just
+ * stacks on top of whichever screen opened it — menu or pause — without
+ * hiding it) so it needs no callback into main.js at all.
+ */
+export function initUI({ onStart, onPauseRequest, onResumeRequest, onRestart }) {
   onScoreChange((score) => {
     scoreValueEl.textContent = String(score);
   });
   scoreValueEl.textContent = String(getScore());
 
+  startButton.addEventListener('click', () => {
+    primeAudio(); // the menu's Play button is the session's first real gesture
+    hideMenu();
+    onStart();
+  });
+  pauseButton.addEventListener('click', onPauseRequest);
+  resumeButton.addEventListener('click', () => {
+    hidePause();
+    onResumeRequest();
+  });
+  pauseRestartButton.addEventListener('click', onRestart);
   restartButton.addEventListener('click', onRestart);
 
-  updateMuteIcon();
-  muteButton.addEventListener('click', () => {
-    primeAudio(); // in case this is the very first user gesture of the session
+  menuSettingsButton.addEventListener('click', showSettings);
+  pauseSettingsButton.addEventListener('click', showSettings);
+  settingsBackButton.addEventListener('click', hideSettings);
+
+  updateSoundToggleLabel();
+  soundToggleButton.addEventListener('click', () => {
+    primeAudio();
     toggleMuted();
-    updateMuteIcon();
+    updateSoundToggleLabel();
   });
 
   // The danger line's position is fixed in logical coordinates, same as the
@@ -50,9 +86,8 @@ export function initUI({ onRestart }) {
   setupResize();
 }
 
-function updateMuteIcon() {
-  muteButton.textContent = isMuted() ? '🔇' : '🔊';
-  muteButton.setAttribute('aria-label', isMuted() ? 'Включить звук' : 'Выключить звук');
+function updateSoundToggleLabel() {
+  soundToggleButton.textContent = isMuted() ? 'Звук: выкл' : 'Звук: вкл';
 }
 
 /** Updates the "next slime" preview swatch in the HUD's top-left corner. */
@@ -61,6 +96,30 @@ export function setNextPreview(radius, color) {
   const size = Math.min(48, Math.max(16, radius * 0.6));
   nextPreviewEl.style.width = `${size}px`;
   nextPreviewEl.style.height = `${size}px`;
+}
+
+export function hideMenu() {
+  mainMenuEl.classList.add('hidden');
+}
+
+export function showPause() {
+  pauseOverlayEl.classList.remove('hidden');
+}
+
+export function hidePause() {
+  pauseOverlayEl.classList.add('hidden');
+}
+
+function showSettings() {
+  settingsOverlayEl.classList.remove('hidden');
+}
+
+function hideSettings() {
+  settingsOverlayEl.classList.add('hidden');
+}
+
+export function setPauseButtonVisible(visible) {
+  pauseButton.classList.toggle('hidden', !visible);
 }
 
 export function showGameOver(finalScore, bestScore) {

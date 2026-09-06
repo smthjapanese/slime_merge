@@ -34,12 +34,15 @@ body {
   left: 0;
   width: 380px;
   height: 600px;
-  background: linear-gradient(to bottom, #122842 0%, #1f4f7a 100%);
+  /* Backdrop behind/around the jar shape — the jar's own interior is filled
+     separately in render.js (a warm beige), so only the area outside it
+     ever shows this blue. */
+  background: linear-gradient(to bottom, #6c79ad 0%, #8996c9 100%);
   touch-action: none;
 }
 
 /* HUD sits on top of the canvas but lets pointer input fall through to it,
-   except for elements (like the restart button) that opt back in. */
+   except for elements (like buttons) that opt back in. */
 #hud {
   position: absolute;
   inset: 0;
@@ -49,7 +52,7 @@ body {
 
 #danger-line {
   position: absolute;
-  border-top: 3px dashed rgba(255, 255, 255, 0.6);
+  border-top: 3px dashed rgba(30, 30, 40, 0.45);
   height: 0;
 }
 
@@ -62,7 +65,7 @@ body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
-#mute-button {
+#pause-button {
   position: absolute;
   top: 42px;
   right: 12px;
@@ -71,7 +74,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
   background: rgba(255, 255, 255, 0.12);
   border: none;
@@ -81,8 +84,12 @@ body {
   pointer-events: auto;
 }
 
-#mute-button:active {
+#pause-button:active {
   background: rgba(255, 255, 255, 0.24);
+}
+
+#pause-button.hidden {
+  display: none;
 }
 
 #next-hud {
@@ -102,7 +109,9 @@ body {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
-#game-over {
+/* Shared full-cover backdrop for every modal screen: the main menu, pause,
+   settings, and game-over. */
+.overlay-screen {
   position: absolute;
   inset: 0;
   display: flex;
@@ -112,12 +121,13 @@ body {
   pointer-events: auto;
 }
 
-#game-over.hidden {
+.overlay-screen.hidden {
   display: none;
   pointer-events: none;
 }
 
-.game-over-panel {
+/* Shared panel box for every modal screen's content. */
+.overlay-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -129,17 +139,23 @@ body {
   text-align: center;
 }
 
-.game-over-panel h2 {
+.overlay-panel h1 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.overlay-panel h2 {
   margin: 0;
   font-size: 22px;
 }
 
-.game-over-panel p {
+.overlay-panel p {
   margin: 0;
   font-size: 18px;
 }
 
-#restart-button {
+/* Shared pill button used across the menu/pause/settings/game-over panels. */
+.panel-button {
   padding: 10px 24px;
   font-size: 16px;
   font-weight: 600;
@@ -148,8 +164,19 @@ body {
   border: none;
   border-radius: 999px;
   cursor: pointer;
+  min-width: 180px;
 }
 
-#restart-button:active {
+.panel-button:active {
   background: #4dd6ab;
+}
+
+/* Secondary styling for less prominent panel actions (Settings, Back). */
+.panel-button.panel-button--secondary {
+  color: #f4f4f8;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.panel-button.panel-button--secondary:active {
+  background: rgba(255, 255, 255, 0.22);
 }

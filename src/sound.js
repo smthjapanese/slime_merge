@@ -102,26 +102,11 @@ export function playLandThud(now) {
   playTone({ startFreq: 160, endFreq: 90, duration: 0.09, volume: 0.12, type: 'triangle' });
 }
 
-/**
- * Rising chime for a merge — pitch climbs with the resulting level. `combo`
- * (the current chain streak, 1 for a standalone merge) layers on a brighter
- * second "ding" and a longer buzz, so a chain feels more rewarding than
- * back-to-back identical blips.
- */
-export function playMerge(level, combo = 1) {
+/** Rising chime for a merge — pitch climbs with the resulting level. */
+export function playMerge(level) {
   const base = 260 + level * 40;
   playTone({ startFreq: base, endFreq: base * 1.8, duration: 0.18, volume: 0.22, type: 'sine' });
-  if (combo >= 2) {
-    const comboBase = 600 + Math.min(combo, 8) * 60;
-    playTone({
-      startFreq: comboBase,
-      endFreq: comboBase * 1.4,
-      duration: 0.12,
-      volume: 0.18,
-      type: 'triangle',
-    });
-  }
-  vibrate(Math.min(60, 15 + level * 4 + combo * 3));
+  vibrate(Math.min(40, 15 + level * 4));
 }
 
 /** Descending tone for game over. */

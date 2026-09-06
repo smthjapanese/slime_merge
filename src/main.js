@@ -1,4 +1,9 @@
 // Entry point: wires up physics, input, UI and rendering, and runs the game loop.
+//
+// Screen flow: main menu -> playing -> (pause <-> playing) -> game over.
+// `isPlaying` is the single source of truth for "can the player interact /
+// is physics ticking right now" — false on the menu, while paused, and
+// during game over.
 
 import Matter from 'matter-js';
 import { createPhysicsWorld, JAR_TOP } from './physics.js';
@@ -9,8 +14,16 @@ import { setupMergeHandling } from './merge.js';
 import { setupLandingSquash } from './animation.js';
 import { pruneExpiredEffects } from './effects.js';
 import { checkGameOver } from './gameover.js';
-import { resetScore, resetCombo, setGameOver, isGameOverActive, getScore } from './state.js';
-import { initUI, setNextPreview, showGameOver, hideGameOver } from './ui.js';
+import { resetScore, setGameOver, isGameOverActive, getScore } from './state.js';
+import {
+  initUI,
+  setNextPreview,
+  setPauseButtonVisible,
+  showPause,
+  hidePause,
+  showGameOver,
+  hideGameOver,
+} from './ui.js';
 import { playGameOver, primeAudio } from './sound.js';
 import {
   initYandexSDK,
@@ -34,6 +47,10 @@ const PENDING_Y_OFFSET = 40;
 let engine;
 let world;
 let runner;
+
+// True only while the player can actually interact and physics is ticking —
+// false on the main menu, while paused, and during game over.
+let isPlaying = false;
 
 // All slimes that have been dropped into the jar and now have physics bodies.
 // Kept as a single mutable array (rather than reassigned) so closures in
@@ -97,7 +114,7 @@ function initSpawner(x) {
 }
 
 function dropSlime(x) {
-  if (!pending || isGameOverActive()) return;
+  if (!pending || !isPlaying) return;
   primeAudio(); // must happen synchronously inside this user-gesture call chain
   const slime = createSlime(pending.level, x, pendingY());
   World.add(world, slime.body);
@@ -105,39 +122,59 @@ function dropSlime(x) {
   spawnPending(x);
 }
 
-/** (Re)creates the physics engine/world/runner from scratch. */
+/** (Re)creates the physics engine/world/runner from scratch. Doesn't start ticking on its own. */
 function startWorld() {
   const created = createPhysicsWorld();
   engine = created.engine;
   world = created.world;
   setupMergeHandling(engine, world, slimes, effects);
   setupLandingSquash(engine);
-
   runner = Runner.create();
-  Runner.run(runner, engine);
-  notifyGameplayStart();
 }
 
-/** Full reset: clears the world, the jar is rebuilt, score and slimes start over. */
+/** Stops physics and tells the platform gameplay isn't active right now. */
+function pauseGameplay() {
+  isPlaying = false;
+  Runner.stop(runner);
+  notifyGameplayStop();
+}
+
+/** Starts/resumes physics and tells the platform gameplay is active. */
+function resumeGameplay() {
+  isPlaying = true;
+  Runner.run(runner, engine);
+  notifyGameplayStart();
+  setPauseButtonVisible(true);
+}
+
+/** Full reset: rebuilds the world/jar, score and slimes start over, and play resumes immediately. */
 function resetGame() {
   Runner.stop(runner);
   slimes.length = 0;
   effects.length = 0;
   resetScore();
-  resetCombo();
   setGameOver(false);
   startWorld();
   initSpawner(canvas.width / 2);
   hideGameOver();
+  hidePause();
+  resumeGameplay();
 }
 
-/** Restart button handler: gates the actual reset behind an occasional ad. */
+/** Restart handler (pause menu and game-over screen both use this): gates the reset behind an occasional ad. */
 function handleRestartRequest() {
   if (isAdDueThisRestart()) {
     showFullscreenAd(resetGame);
   } else {
     resetGame();
   }
+}
+
+function handlePauseRequest() {
+  if (!isPlaying) return;
+  pauseGameplay();
+  setPauseButtonVisible(false);
+  showPause();
 }
 
 setupInput(canvas, {
@@ -148,23 +185,28 @@ setupInput(canvas, {
   onDrop: (x) => dropSlime(x),
 });
 
-initUI({ onRestart: handleRestartRequest });
+initUI({
+  onStart: resumeGameplay,
+  onPauseRequest: handlePauseRequest,
+  onResumeRequest: resumeGameplay,
+  onRestart: handleRestartRequest,
+});
 
 // Pause physics while the tab/app is backgrounded — otherwise a slime can
 // fall through several seconds of un-rendered simulation in one jump when
 // the player comes back (or the browser throttles the timestep unevenly).
+// Only kicks in if we were actually playing (not sitting on the menu,
+// paused, or already game over).
 let pausedForVisibility = false;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    if (!isGameOverActive()) {
-      Runner.stop(runner);
-      notifyGameplayStop();
+    if (isPlaying) {
+      pauseGameplay();
       pausedForVisibility = true;
     }
   } else if (pausedForVisibility) {
     pausedForVisibility = false;
-    Runner.run(runner, engine);
-    notifyGameplayStart();
+    resumeGameplay();
   }
 });
 
@@ -174,10 +216,10 @@ initSpawner(canvas.width / 2);
 let firstFrameRendered = false;
 
 function loop(now) {
-  if (!isGameOverActive() && checkGameOver(slimes, now)) {
+  if (isPlaying && !isGameOverActive() && checkGameOver(slimes, now)) {
     setGameOver(true);
-    Runner.stop(runner);
-    notifyGameplayStop();
+    pauseGameplay();
+    setPauseButtonVisible(false);
     playGameOver();
     const finalScore = getScore();
     if (finalScore > bestScore) {
