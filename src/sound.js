@@ -131,27 +131,23 @@ export function playBonus() {
 
 // --- Background music ------------------------------------------------------
 //
-// A bouncy, upbeat "oom-pa" arpeggio loop — plain major chords only (I-IV-V-I
-// in C major, not even the relative-minor vi that a pad version of this used
-// to lean on — a single minor chord is enough to read as wistful no matter
-// how bright everything around it is), played as short staccato notes at a
-// brisk tempo rather than long sustained pad chords. Sustained chords read as
-// calm/ambient regardless of which notes they're built from; quick plucky
-// notes with gaps between them are what actually reads as energetic.
+// A light, airy melody phrase — soft sine notes tracing a gentle rise-and-
+// fall shape in C major pentatonic (no minor tones, so it stays cheerful),
+// with real silence between phrase repeats. Earlier attempts read as an
+// 8-bit game jingle ("like Tetris") because of a square-wave timbre and a
+// tight, driving "oom-pa" bassline looping with no breathing room — a soft
+// sine tone and a phrase that pauses before repeating is what actually
+// reads as light and unobtrusive rather than insistent.
 
-const MUSIC_NOTE_DURATION_S = 0.16;
-const MUSIC_VOLUME = 0.07;
+const MUSIC_VOLUME = 0.045;
+const MUSIC_NOTE_ENVELOPE_S = 0.3; // how long each note rings out
+const MUSIC_NOTE_INTERVAL_S = 0.42; // gap to the next note's start (> envelope, so notes breathe)
+const MUSIC_REST_S = 1.4; // silence after each full phrase before it repeats
 
-// Each bar is [bass, third, fifth, third] — a bass note an octave down
-// followed by two skips up into the chord, the classic "oom-pa-pa" bounce.
-// Only major triads appear anywhere in this progression (I-IV-V-I).
-const MUSIC_PROGRESSION_HZ = [
-  [130.81, 329.63, 392.0, 329.63], // C bass, E4, G4, E4 (I)
-  [87.31, 220.0, 261.63, 220.0], // F bass, A3, C4, A3 (IV)
-  [98.0, 246.94, 293.66, 246.94], // G bass, B3, D4, B3 (V)
-  [130.81, 329.63, 392.0, 523.25], // C bass, E4, G4, C5 — a lift into the loop restart (I)
-];
-const MUSIC_NOTE_QUEUE = MUSIC_PROGRESSION_HZ.flat();
+// A gentle rise-and-fall phrase in C major pentatonic (C D E G A) — every
+// note in this scale is consonant with every other, so there's no way for
+// it to land on anything dissonant or sad, even without any harmony under it.
+const MUSIC_PHRASE_HZ = [523.25, 659.25, 783.99, 880.0, 783.99, 659.25, 587.33, 523.25];
 
 let musicRequested = false; // has the game asked for music at all this session
 let musicNoteIndex = 0;
@@ -161,32 +157,38 @@ function scheduleNextNote() {
   const ctx = getAudioContext();
   if (!ctx || muted || !musicRequested) return;
 
+  if (musicNoteIndex >= MUSIC_PHRASE_HZ.length) {
+    musicNoteIndex = 0;
+    musicTimeoutId = setTimeout(scheduleNextNote, MUSIC_REST_S * 1000);
+    return;
+  }
+
   try {
     const now = ctx.currentTime;
-    const freq = MUSIC_NOTE_QUEUE[musicNoteIndex % MUSIC_NOTE_QUEUE.length];
-    musicNoteIndex += 1;
+    const freq = MUSIC_PHRASE_HZ[musicNoteIndex];
 
     const oscillator = ctx.createOscillator();
-    oscillator.type = 'square';
+    oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(freq, now);
 
-    // Short, punchy envelope — a near-instant attack and a quick decay well
-    // before the next note starts, so notes stay separated instead of
-    // blurring into a pad.
+    // A soft attack and a gentle decay that finishes before the next note
+    // starts, so notes stay separated like a chime instead of blurring
+    // into a continuous drone.
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(MUSIC_VOLUME, now + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + MUSIC_NOTE_DURATION_S);
+    gain.gain.linearRampToValueAtTime(MUSIC_VOLUME, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + MUSIC_NOTE_ENVELOPE_S);
 
     oscillator.connect(gain);
     gain.connect(ctx.destination);
     oscillator.start(now);
-    oscillator.stop(now + MUSIC_NOTE_DURATION_S + 0.05);
+    oscillator.stop(now + MUSIC_NOTE_ENVELOPE_S + 0.05);
   } catch (error) {
     console.warn('[sound] music playback failed, continuing without it:', error);
   }
 
-  musicTimeoutId = setTimeout(scheduleNextNote, MUSIC_NOTE_DURATION_S * 1000);
+  musicNoteIndex += 1;
+  musicTimeoutId = setTimeout(scheduleNextNote, MUSIC_NOTE_INTERVAL_S * 1000);
 }
 
 function stopMusicPlayback() {
