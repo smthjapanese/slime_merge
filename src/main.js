@@ -72,18 +72,25 @@ let pending = null;
 // a small swatch in the HUD so the player can plan one slime further ahead.
 let upcomingLevel = null;
 
-// Every WILDCARD_SCORE_STEP points crossed, the *next* rolled slime is
-// replaced with a wildcard bonus ball (see entities.js) instead of a random
-// level — queued here rather than injected immediately so it still goes
-// through the normal upcoming -> pending pipeline the player already reads.
-const WILDCARD_SCORE_STEP = 5000;
-let lastWildcardMilestone = 0;
+// Every 400-700 points of score gained (a fresh random gap rolled after each
+// one), the *next* rolled slime is replaced with a wildcard bonus ball (see
+// entities.js) instead of a random level — queued here rather than injected
+// immediately so it still goes through the normal upcoming -> pending
+// pipeline the player already reads.
+const WILDCARD_MIN_SCORE_GAP = 400;
+const WILDCARD_MAX_SCORE_GAP = 700;
 let wildcardQueued = false;
 
+function randomWildcardGap() {
+  const span = WILDCARD_MAX_SCORE_GAP - WILDCARD_MIN_SCORE_GAP;
+  return WILDCARD_MIN_SCORE_GAP + Math.floor(Math.random() * (span + 1));
+}
+
+let nextWildcardThreshold = randomWildcardGap();
+
 onScoreChange((score) => {
-  const crossed = Math.floor(score / WILDCARD_SCORE_STEP) * WILDCARD_SCORE_STEP;
-  if (crossed > lastWildcardMilestone) {
-    lastWildcardMilestone = crossed;
+  if (score >= nextWildcardThreshold) {
+    nextWildcardThreshold = score + randomWildcardGap();
     wildcardQueued = true;
     playBonus();
   }
@@ -178,7 +185,7 @@ function resetGame() {
   effects.length = 0;
   resetScore();
   setGameOver(false);
-  lastWildcardMilestone = 0;
+  nextWildcardThreshold = randomWildcardGap();
   wildcardQueued = false;
   startWorld();
   initSpawner(canvas.width / 2);
