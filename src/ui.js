@@ -12,6 +12,7 @@ import {
   WALL_VISUAL_WIDTH,
 } from './physics.js';
 import { isMuted, toggleMuted, primeAudio } from './sound.js';
+import { SLIME_LEVELS } from './entities.js';
 
 const stage = document.getElementById('stage');
 const scoreValueEl = document.getElementById('score-value');
@@ -94,8 +95,11 @@ function updateSoundToggleLabel() {
   soundToggleButton.textContent = isMuted() ? 'Звук: выкл' : 'Звук: вкл';
 }
 
-const WILDCARD_PREVIEW_GRADIENT =
-  'conic-gradient(#ff6b6b, #ffd43b, #63e6be, #4dabf7, #9775fa, #f783ac, #ff6b6b)';
+// Cycles through every level's actual color (and back to the first) so the
+// HUD swatch matches the wildcard slime's own all-colors body exactly.
+const WILDCARD_PREVIEW_GRADIENT = `conic-gradient(${SLIME_LEVELS.map((def) => def.color)
+  .concat(SLIME_LEVELS[0].color)
+  .join(', ')})`;
 
 /**
  * Updates the "next slime" preview swatch in the HUD's top-left corner.

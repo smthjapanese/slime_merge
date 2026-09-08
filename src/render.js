@@ -15,6 +15,7 @@ import { getSlimeRenderScale, isResting } from './animation.js';
 import { effectProgress } from './effects.js';
 import { lighten, darken } from './color.js';
 import { getExpression, drawFace } from './face.js';
+import { SLIME_LEVELS } from './entities.js';
 
 export function clearScene(ctx) {
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -80,40 +81,28 @@ export function drawJar(ctx) {
   ctx.restore();
 }
 
-// Rainbow sparkle ring drawn on a wildcard bonus slime instead of horns —
-// signals "matches any color" at a glance.
-const WILDCARD_SPARKLE_COLORS = ['#ff6b6b', '#ffd43b', '#63e6be', '#4dabf7', '#9775fa', '#f783ac'];
-
-function drawWildcardSparkles(ctx, radius) {
-  const count = WILDCARD_SPARKLE_COLORS.length;
-  for (let i = 0; i < count; i += 1) {
-    const angle = (i / count) * Math.PI * 2 - Math.PI / 2;
-    const x = Math.cos(angle) * radius * 0.7;
-    const y = Math.sin(angle) * radius * 0.7;
-    ctx.beginPath();
-    ctx.arc(x, y, radius * 0.12, 0, Math.PI * 2);
-    ctx.fillStyle = WILDCARD_SPARKLE_COLORS[i];
-    ctx.fill();
-    ctx.lineWidth = Math.max(1, radius * 0.02);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.stroke();
-  }
-}
-
 /**
- * Draws the jelly-slime character centered on the current canvas origin,
- * at the given radius. All feature sizes are proportional to `radius` so
- * the same artwork scales cleanly across all 8 levels. `isWild` swaps the
- * usual horns for a rainbow sparkle ring (see the wildcard bonus slime).
+ * Draws the wildcard bonus slime's body as a pie of every level color in
+ * the game (not a single fill) — the whole point is that it visibly reads
+ * as "made of all the game's ball colors" instead of just being tinted.
+ * Wedges are topped with a soft radial gloss so it still reads as one
+ * glossy jelly ball rather than a flat pie chart.
  */
-function drawSlimeArt(ctx, radius, color, expression, isWild = false) {
-  const light = lighten(color, 0.55);
-  const dark = darken(color, 0.35);
-  const hornColor = darken(color, 0.15);
+function drawWildcardBody(ctx, radius) {
+  const colors = SLIME_LEVELS.map((def) => def.color);
+  const sliceAngle = (Math.PI * 2) / colors.length;
 
-  // --- Body: glossy jelly fill, lighter toward the upper-left, darker at
-  // the edges.
-  const gradient = ctx.createRadialGradient(
+  colors.forEach((color, i) => {
+    const start = -Math.PI / 2 + i * sliceAngle;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, radius, start, start + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  });
+
+  const gloss = ctx.createRadialGradient(
     -radius * 0.35,
     -radius * 0.4,
     radius * 0.05,
@@ -121,22 +110,56 @@ function drawSlimeArt(ctx, radius, color, expression, isWild = false) {
     0,
     radius * 1.05
   );
-  gradient.addColorStop(0, light);
-  gradient.addColorStop(0.55, color);
-  gradient.addColorStop(1, dark);
+  gloss.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+  gloss.addColorStop(0.55, 'rgba(255, 255, 255, 0.05)');
+  gloss.addColorStop(1, 'rgba(0, 0, 0, 0.22)');
 
   ctx.beginPath();
   ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = gloss;
   ctx.fill();
   ctx.lineWidth = Math.max(1, radius * 0.03);
-  ctx.strokeStyle = dark;
+  ctx.strokeStyle = 'rgba(20, 20, 30, 0.6)';
   ctx.stroke();
+}
 
-  // --- Horns (or, for the wildcard bonus slime, a rainbow sparkle ring).
+/**
+ * Draws the jelly-slime character centered on the current canvas origin,
+ * at the given radius. All feature sizes are proportional to `radius` so
+ * the same artwork scales cleanly across all 8 levels. `isWild` swaps the
+ * usual single-color body (and horns) for the all-colors wildcard body.
+ */
+function drawSlimeArt(ctx, radius, color, expression, isWild = false) {
   if (isWild) {
-    drawWildcardSparkles(ctx, radius);
+    drawWildcardBody(ctx, radius);
   } else {
+    const light = lighten(color, 0.55);
+    const dark = darken(color, 0.35);
+    const hornColor = darken(color, 0.15);
+
+    // --- Body: glossy jelly fill, lighter toward the upper-left, darker at
+    // the edges.
+    const gradient = ctx.createRadialGradient(
+      -radius * 0.35,
+      -radius * 0.4,
+      radius * 0.05,
+      0,
+      0,
+      radius * 1.05
+    );
+    gradient.addColorStop(0, light);
+    gradient.addColorStop(0.55, color);
+    gradient.addColorStop(1, dark);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, radius * 0.03);
+    ctx.strokeStyle = dark;
+    ctx.stroke();
+
+    // --- Horns: two small nubs on top.
     drawHorn(ctx, -radius * 0.42, hornColor, radius);
     drawHorn(ctx, radius * 0.42, hornColor, radius);
   }
