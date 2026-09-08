@@ -48,7 +48,7 @@ export function setMuted(value) {
   if (muted) {
     stopMusicPlayback();
   } else if (musicRequested) {
-    scheduleNextChord();
+    scheduleNextNote();
   }
 }
 
@@ -131,61 +131,62 @@ export function playBonus() {
 
 // --- Background music ------------------------------------------------------
 //
-// A light, cheerful loop — a plain I-V-vi-IV progression in C major (no
-// tense sevenths, just clean triads), sitting in a brighter register than a
-// low ambient pad so it reads as playful rather than dreary. Chords are a
-// handful of triangle-wave tones with a quick fade in/out, scheduled
-// back-to-back via setTimeout (a music-precision scheduler would be
-// overkill for a loop this simple).
+// A bouncy, upbeat "oom-pa" arpeggio loop — plain major chords only (I-IV-V-I
+// in C major, not even the relative-minor vi that a pad version of this used
+// to lean on — a single minor chord is enough to read as wistful no matter
+// how bright everything around it is), played as short staccato notes at a
+// brisk tempo rather than long sustained pad chords. Sustained chords read as
+// calm/ambient regardless of which notes they're built from; quick plucky
+// notes with gaps between them are what actually reads as energetic.
 
-const MUSIC_CHORD_DURATION_S = 3.2;
-const MUSIC_FADE_S = 0.6;
-const MUSIC_VOLUME = 0.05; // quiet — ambience, not a soundtrack competing with SFX
+const MUSIC_NOTE_DURATION_S = 0.16;
+const MUSIC_VOLUME = 0.07;
 
-// Plain major/minor triads only — I, V, vi, IV — a classic upbeat pop
-// progression that loops cleanly without ever landing on a dissonant chord.
-const MUSIC_CHORDS_HZ = [
-  [261.63, 329.63, 392.0], // C4 E4 G4 (I)
-  [196.0, 246.94, 293.66], // G3 B3 D4 (V)
-  [220.0, 261.63, 329.63], // A3 C4 E4 (vi)
-  [174.61, 220.0, 261.63], // F3 A3 C4 (IV)
+// Each bar is [bass, third, fifth, third] — a bass note an octave down
+// followed by two skips up into the chord, the classic "oom-pa-pa" bounce.
+// Only major triads appear anywhere in this progression (I-IV-V-I).
+const MUSIC_PROGRESSION_HZ = [
+  [130.81, 329.63, 392.0, 329.63], // C bass, E4, G4, E4 (I)
+  [87.31, 220.0, 261.63, 220.0], // F bass, A3, C4, A3 (IV)
+  [98.0, 246.94, 293.66, 246.94], // G bass, B3, D4, B3 (V)
+  [130.81, 329.63, 392.0, 523.25], // C bass, E4, G4, C5 — a lift into the loop restart (I)
 ];
+const MUSIC_NOTE_QUEUE = MUSIC_PROGRESSION_HZ.flat();
 
 let musicRequested = false; // has the game asked for music at all this session
-let musicChordIndex = 0;
+let musicNoteIndex = 0;
 let musicTimeoutId = null;
 
-function scheduleNextChord() {
+function scheduleNextNote() {
   const ctx = getAudioContext();
   if (!ctx || muted || !musicRequested) return;
 
   try {
     const now = ctx.currentTime;
-    const freqs = MUSIC_CHORDS_HZ[musicChordIndex % MUSIC_CHORDS_HZ.length];
-    musicChordIndex += 1;
-    const noteVolume = MUSIC_VOLUME / freqs.length;
+    const freq = MUSIC_NOTE_QUEUE[musicNoteIndex % MUSIC_NOTE_QUEUE.length];
+    musicNoteIndex += 1;
 
-    for (const freq of freqs) {
-      const oscillator = ctx.createOscillator();
-      oscillator.type = 'triangle';
-      oscillator.frequency.setValueAtTime(freq, now);
+    const oscillator = ctx.createOscillator();
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(freq, now);
 
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(noteVolume, now + MUSIC_FADE_S);
-      gain.gain.setValueAtTime(noteVolume, now + MUSIC_CHORD_DURATION_S - MUSIC_FADE_S);
-      gain.gain.linearRampToValueAtTime(0, now + MUSIC_CHORD_DURATION_S);
+    // Short, punchy envelope — a near-instant attack and a quick decay well
+    // before the next note starts, so notes stay separated instead of
+    // blurring into a pad.
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(MUSIC_VOLUME, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + MUSIC_NOTE_DURATION_S);
 
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start(now);
-      oscillator.stop(now + MUSIC_CHORD_DURATION_S + 0.1);
-    }
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(now);
+    oscillator.stop(now + MUSIC_NOTE_DURATION_S + 0.05);
   } catch (error) {
     console.warn('[sound] music playback failed, continuing without it:', error);
   }
 
-  musicTimeoutId = setTimeout(scheduleNextChord, MUSIC_CHORD_DURATION_S * 1000);
+  musicTimeoutId = setTimeout(scheduleNextNote, MUSIC_NOTE_DURATION_S * 1000);
 }
 
 function stopMusicPlayback() {
@@ -196,14 +197,14 @@ function stopMusicPlayback() {
 }
 
 /**
- * Starts the looping ambient background track if it isn't already running.
- * Safe to call repeatedly (e.g. on every resume) — a no-op once the loop is
- * going. Call from a user-gesture path alongside primeAudio().
+ * Starts the looping background track if it isn't already running. Safe to
+ * call repeatedly (e.g. on every resume) — a no-op once the loop is going.
+ * Call from a user-gesture path alongside primeAudio().
  */
 export function startBackgroundMusic() {
   musicRequested = true;
   if (muted || musicTimeoutId != null) return;
-  scheduleNextChord();
+  scheduleNextNote();
 }
 
 /** Stops the background loop entirely (not just muting it). */
