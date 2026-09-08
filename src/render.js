@@ -199,6 +199,37 @@ function drawFlashEffect(ctx, effect, now) {
   ctx.restore();
 }
 
+/** Draws a scattering ring of colored particles flying outward from a merge point. */
+function drawBurstEffect(ctx, effect, now) {
+  const t = effectProgress(effect, now);
+  const eased = 1 - (1 - t) ** 2; // ease-out: fast start, settles near the end
+  const alpha = 1 - t;
+
+  for (const particle of effect.particles) {
+    const distance = particle.speed * eased;
+    const px = effect.x + Math.cos(particle.angle) * distance;
+    const py = effect.y + Math.sin(particle.angle) * distance;
+    const size = particle.size * (1 - t * 0.6);
+    if (size <= 0) continue;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fillStyle = particle.color;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawEffect(ctx, effect, now) {
+  if (effect.type === 'burst') {
+    drawBurstEffect(ctx, effect, now);
+  } else {
+    drawFlashEffect(ctx, effect, now);
+  }
+}
+
 export function renderScene(ctx, { slimes, pending, effects = [] }, now) {
   clearScene(ctx);
   fillJarInterior(ctx);
@@ -209,7 +240,7 @@ export function renderScene(ctx, { slimes, pending, effects = [] }, now) {
   }
 
   for (const effect of effects) {
-    drawFlashEffect(ctx, effect, now);
+    drawEffect(ctx, effect, now);
   }
 
   if (pending) {

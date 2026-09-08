@@ -82,7 +82,7 @@ describe('merge', () => {
     expect(getScore()).toBe(2 ** (MAX_LEVEL_INDEX + 2));
   });
 
-  it('pushes a merge-flash effect at the midpoint of the merged pair', () => {
+  it('pushes a flash and a burst effect at the midpoint of the merged pair', () => {
     const { engine, world, slimes, effects } = freshWorld();
     const a = createSlime(0, 100, 100);
     const b = createSlime(0, 118, 100);
@@ -91,8 +91,11 @@ describe('merge', () => {
 
     step(engine);
 
-    expect(effects).toHaveLength(1);
-    expect(effects[0].x).toBeCloseTo(109, 0);
-    expect(effects[0].y).toBeCloseTo(100, 0);
+    expect(effects).toHaveLength(2);
+    for (const effect of effects) {
+      expect(effect.x).toBeCloseTo(109, 0);
+      expect(effect.y).toBeCloseTo(100, 0);
+    }
+    expect(effects.map((effect) => effect.type).sort()).toEqual(['burst', 'flash']);
   });
 });

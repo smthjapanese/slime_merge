@@ -4,7 +4,7 @@
 import Matter from 'matter-js';
 import { MAX_LEVEL_INDEX, createSlime } from './entities.js';
 import { addScore } from './state.js';
-import { createMergeFlash } from './effects.js';
+import { createMergeFlash, createMergeBurst } from './effects.js';
 import { triggerDizzy } from './face.js';
 import { playMerge } from './sound.js';
 
@@ -52,6 +52,7 @@ function tryMerge(bodyA, bodyB, world, slimes, effects) {
   removeFromArray(slimes, wrapperB);
 
   let flashRadius = wrapperA.radius;
+  let burstColor = wrapperA.color;
   if (currentLevel < MAX_LEVEL_INDEX) {
     const merged = createSlime(nextLevel, midX, midY);
     merged.spawnedAt = now; // drives the pop-in scale-up in animation.js
@@ -59,8 +60,10 @@ function tryMerge(bodyA, bodyB, world, slimes, effects) {
     World.add(world, merged.body);
     slimes.push(merged);
     flashRadius = merged.radius;
+    burstColor = merged.color;
   }
   effects.push(createMergeFlash(midX, midY, flashRadius, now));
+  effects.push(createMergeBurst(midX, midY, flashRadius, burstColor, now));
   playMerge(nextLevel);
 
   // Max level (SLIME_LEVELS.length): no new slime is spawned, just the

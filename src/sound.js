@@ -122,23 +122,24 @@ export function playGameOver() {
 
 // --- Background music ------------------------------------------------------
 //
-// A slow, quiet ambient pad loop — a handful of warm chords cycling
-// continuously so the jar never sits in silence. Deliberately simple: each
-// chord is just a few detuned sine waves with a slow fade in/out, scheduled
+// A light, cheerful loop — a plain I-V-vi-IV progression in C major (no
+// tense sevenths, just clean triads), sitting in a brighter register than a
+// low ambient pad so it reads as playful rather than dreary. Chords are a
+// handful of triangle-wave tones with a quick fade in/out, scheduled
 // back-to-back via setTimeout (a music-precision scheduler would be
-// overkill for a loop this slow and ambient).
+// overkill for a loop this simple).
 
-const MUSIC_CHORD_DURATION_S = 4.5;
-const MUSIC_FADE_S = 1.5;
+const MUSIC_CHORD_DURATION_S = 3.2;
+const MUSIC_FADE_S = 0.6;
 const MUSIC_VOLUME = 0.05; // quiet — ambience, not a soundtrack competing with SFX
 
-// Warm, non-resolving triads/add9 voicings, picked to loop without feeling
-// like it's "ending" on any one chord.
+// Plain major/minor triads only — I, V, vi, IV — a classic upbeat pop
+// progression that loops cleanly without ever landing on a dissonant chord.
 const MUSIC_CHORDS_HZ = [
-  [130.81, 196.0, 246.94, 329.63], // C3 G3 B3 E4
-  [146.83, 220.0, 277.18, 349.23], // D3 A3 C#4 F4
-  [164.81, 246.94, 293.66, 392.0], // E3 B3 D4 G4
-  [110.0, 164.81, 220.0, 293.66], // A2 E3 A3 D4
+  [261.63, 329.63, 392.0], // C4 E4 G4 (I)
+  [196.0, 246.94, 293.66], // G3 B3 D4 (V)
+  [220.0, 261.63, 329.63], // A3 C4 E4 (vi)
+  [174.61, 220.0, 261.63], // F3 A3 C4 (IV)
 ];
 
 let musicRequested = false; // has the game asked for music at all this session
@@ -157,7 +158,7 @@ function scheduleNextChord() {
 
     for (const freq of freqs) {
       const oscillator = ctx.createOscillator();
-      oscillator.type = 'sine';
+      oscillator.type = 'triangle';
       oscillator.frequency.setValueAtTime(freq, now);
 
       const gain = ctx.createGain();

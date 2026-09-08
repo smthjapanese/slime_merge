@@ -5,13 +5,12 @@
 
 export const EXPRESSIONS = ['happy', 'neutral', 'surprised', 'dizzy', 'sleepy'];
 
-// Expressions a slime can be born with or settle into on its own. Surprised
-// and dizzy only ever happen as a reaction (see triggerSurprised/triggerDizzy
-// below) — never picked as a resting default.
-const BASE_EXPRESSIONS = ['happy', 'neutral'];
-
+// A slime's resting default is always a smile — 'neutral' stays a valid,
+// drawable expression (see drawFace below) but is never picked as the base
+// one anymore. Surprised and dizzy only ever happen as a reaction (see
+// triggerSurprised/triggerDizzy below).
 export function pickRandomBaseExpression() {
-  return BASE_EXPRESSIONS[Math.floor(Math.random() * BASE_EXPRESSIONS.length)];
+  return 'happy';
 }
 
 const SURPRISED_DURATION_MS = 220;
