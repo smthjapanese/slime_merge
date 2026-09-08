@@ -48,7 +48,7 @@ export function setMuted(value) {
   if (muted) {
     stopMusicPlayback();
   } else if (musicRequested) {
-    scheduleNextNote();
+    scheduleNextStep();
   }
 }
 
@@ -131,64 +131,115 @@ export function playBonus() {
 
 // --- Background music ------------------------------------------------------
 //
-// A light, airy melody phrase — soft sine notes tracing a gentle rise-and-
-// fall shape in C major pentatonic (no minor tones, so it stays cheerful),
-// with real silence between phrase repeats. Earlier attempts read as an
-// 8-bit game jingle ("like Tetris") because of a square-wave timbre and a
-// tight, driving "oom-pa" bassline looping with no breathing room — a soft
-// sine tone and a phrase that pauses before repeating is what actually
-// reads as light and unobtrusive rather than insistent.
+// A ~20-second casual-mobile-game-style tune (think Angry Birds/Candy
+// Crush) — a bright triangle-wave melody built from short 4-note "cells"
+// arranged into three distinct sections (A a main hook, B a variation, C a
+// bridge) played as A-B-C-B-A, with a soft sine bass note under the first
+// note of each cell for a little harmonic body. Earlier attempts were a
+// single short riff on repeat, which read as thin/repetitive regardless of
+// which notes or timbre it used — real variety across a longer loop is
+// what actually reads as a proper little song instead of a jingle.
 
-const MUSIC_VOLUME = 0.045;
-const MUSIC_NOTE_ENVELOPE_S = 0.3; // how long each note rings out
-const MUSIC_NOTE_INTERVAL_S = 0.42; // gap to the next note's start (> envelope, so notes breathe)
-const MUSIC_REST_S = 1.4; // silence after each full phrase before it repeats
+const STEP_DURATION_S = 0.25;
+const MELODY_VOLUME = 0.05;
+const BASS_VOLUME = 0.025;
+const MELODY_ENVELOPE_S = 0.22; // a touch under STEP_DURATION_S so notes stay separated
+const BASS_ENVELOPE_S = STEP_DURATION_S * 3.5; // sustains softly under the rest of its cell
 
-// A gentle rise-and-fall phrase in C major pentatonic (C D E G A) — every
-// note in this scale is consonant with every other, so there's no way for
-// it to land on anything dissonant or sad, even without any harmony under it.
-const MUSIC_PHRASE_HZ = [523.25, 659.25, 783.99, 880.0, 783.99, 659.25, 587.33, 523.25];
+// C major scale, spanning two octaves — every melody note below is one of
+// these, so nothing can land on a dissonant or sad-sounding tone.
+const C4 = 261.63;
+const D4 = 293.66;
+const E4 = 329.63;
+const F4 = 349.23;
+const G4 = 392.0;
+const A4 = 440.0;
+const B4 = 493.88;
+const C5 = 523.25;
+const D5 = 587.33;
+const E5 = 659.25;
+const F5 = 698.46;
+const G5 = 783.99;
+
+// Four-note melodic building blocks ("cells"). `null` is a rest.
+const CELLS = {
+  a1: [C5, E5, G5, E5],
+  a2: [D5, C5, B4, G4],
+  a4: [F5, D5, C5, null],
+  b1: [G4, B4, D5, B4],
+  b2: [A4, G4, F4, D4],
+  b3: [C5, D5, E5, D5],
+  b4: [G4, E4, C4, null],
+  c1: [C5, D5, E5, F5],
+  c2: [G5, G5, F5, E5],
+  c3: [D5, C5, B4, A4],
+  c4: [G4, E4, C4, null],
+};
+
+// Each section strings four cells together and carries its own bass root,
+// so the soft pulse underneath still outlines a simple I-V-IV-V harmony.
+const SECTION_A = { cells: [CELLS.a1, CELLS.a2, CELLS.a1, CELLS.a4], bassRoot: 130.81 }; // C3 (I)
+const SECTION_B = { cells: [CELLS.b1, CELLS.b2, CELLS.b3, CELLS.b4], bassRoot: 98.0 }; // G2 (V)
+const SECTION_C = { cells: [CELLS.c1, CELLS.c2, CELLS.c3, CELLS.c4], bassRoot: 87.31 }; // F2 (IV)
+
+// The full ~20s loop: the main hook, a variation, a bridge, the variation
+// again, then the hook returns — three distinct musical ideas instead of
+// one short phrase on repeat.
+const SONG_SECTIONS = [SECTION_A, SECTION_B, SECTION_C, SECTION_B, SECTION_A];
+
+function buildMusicSteps() {
+  const steps = [];
+  for (const section of SONG_SECTIONS) {
+    for (const cell of section.cells) {
+      cell.forEach((freq, i) => {
+        steps.push({ melody: freq, bass: i === 0 ? section.bassRoot : null });
+      });
+    }
+  }
+  return steps;
+}
+
+const MUSIC_STEPS = buildMusicSteps();
 
 let musicRequested = false; // has the game asked for music at all this session
-let musicNoteIndex = 0;
+let musicStepIndex = 0;
 let musicTimeoutId = null;
 
-function scheduleNextNote() {
+function playMusicNote(ctx, now, freq, volume, type, duration) {
+  const oscillator = ctx.createOscillator();
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(freq, now);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(volume, now + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+  oscillator.start(now);
+  oscillator.stop(now + duration + 0.05);
+}
+
+function scheduleNextStep() {
   const ctx = getAudioContext();
   if (!ctx || muted || !musicRequested) return;
 
-  if (musicNoteIndex >= MUSIC_PHRASE_HZ.length) {
-    musicNoteIndex = 0;
-    musicTimeoutId = setTimeout(scheduleNextNote, MUSIC_REST_S * 1000);
-    return;
-  }
-
   try {
     const now = ctx.currentTime;
-    const freq = MUSIC_PHRASE_HZ[musicNoteIndex];
-
-    const oscillator = ctx.createOscillator();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(freq, now);
-
-    // A soft attack and a gentle decay that finishes before the next note
-    // starts, so notes stay separated like a chime instead of blurring
-    // into a continuous drone.
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(MUSIC_VOLUME, now + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + MUSIC_NOTE_ENVELOPE_S);
-
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
-    oscillator.start(now);
-    oscillator.stop(now + MUSIC_NOTE_ENVELOPE_S + 0.05);
+    const step = MUSIC_STEPS[musicStepIndex % MUSIC_STEPS.length];
+    if (step.melody != null) {
+      playMusicNote(ctx, now, step.melody, MELODY_VOLUME, 'triangle', MELODY_ENVELOPE_S);
+    }
+    if (step.bass != null) {
+      playMusicNote(ctx, now, step.bass, BASS_VOLUME, 'sine', BASS_ENVELOPE_S);
+    }
   } catch (error) {
     console.warn('[sound] music playback failed, continuing without it:', error);
   }
 
-  musicNoteIndex += 1;
-  musicTimeoutId = setTimeout(scheduleNextNote, MUSIC_NOTE_INTERVAL_S * 1000);
+  musicStepIndex += 1;
+  musicTimeoutId = setTimeout(scheduleNextStep, STEP_DURATION_S * 1000);
 }
 
 function stopMusicPlayback() {
@@ -206,7 +257,7 @@ function stopMusicPlayback() {
 export function startBackgroundMusic() {
   musicRequested = true;
   if (muted || musicTimeoutId != null) return;
-  scheduleNextNote();
+  scheduleNextStep();
 }
 
 /** Stops the background loop entirely (not just muting it). */
