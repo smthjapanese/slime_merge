@@ -5,6 +5,7 @@ import {
   randomSpawnLevel,
   previewSlime,
   createSlime,
+  WILDCARD_LEVEL,
 } from '../src/entities.js';
 
 function sampleDistribution(score, samples = 50000) {
@@ -73,5 +74,22 @@ describe('createSlime', () => {
     expect(slime.body.plugin.wrapper).toBe(slime);
     expect(slime.body.plugin.merging).toBe(false);
     expect(slime.level).toBe(0);
+    expect(slime.isWild).toBe(false);
+  });
+});
+
+describe('wildcard bonus slime', () => {
+  it('previewSlime(WILDCARD_LEVEL) returns a wild preview with a happy expression', () => {
+    const preview = previewSlime(WILDCARD_LEVEL);
+    expect(preview.isWild).toBe(true);
+    expect(preview.expression).toBe('happy');
+    expect(preview.body).toBeUndefined();
+  });
+
+  it('createSlime(WILDCARD_LEVEL, ...) creates a wired-up wild physics body', () => {
+    const slime = createSlime(WILDCARD_LEVEL, 10, 20);
+    expect(slime.isWild).toBe(true);
+    expect(slime.body.plugin.wrapper).toBe(slime);
+    expect(slime.body.plugin.merging).toBe(false);
   });
 });

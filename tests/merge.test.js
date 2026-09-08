@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Matter from 'matter-js';
 import { createPhysicsWorld } from '../src/physics.js';
-import { createSlime, SLIME_LEVELS, MAX_LEVEL_INDEX } from '../src/entities.js';
+import { createSlime, SLIME_LEVELS, MAX_LEVEL_INDEX, WILDCARD_LEVEL } from '../src/entities.js';
 import { setupMergeHandling } from '../src/merge.js';
 import { getScore, resetScore } from '../src/state.js';
 
@@ -97,5 +97,33 @@ describe('merge', () => {
       expect(effect.y).toBeCloseTo(100, 0);
     }
     expect(effects.map((effect) => effect.type).sort()).toEqual(['burst', 'flash']);
+  });
+
+  it('a wildcard merges with any level, promoting it by one', () => {
+    const { engine, world, slimes } = freshWorld();
+    const a = createSlime(2, 100, 100);
+    const b = createSlime(WILDCARD_LEVEL, 100 + SLIME_LEVELS[2].radius, 100);
+    World.add(world, [a.body, b.body]);
+    slimes.push(a, b);
+
+    step(engine);
+
+    expect(slimes).toHaveLength(1);
+    expect(slimes[0].level).toBe(3);
+    expect(slimes[0].isWild).toBe(false);
+    expect(getScore()).toBe(2 ** (3 + 1));
+  });
+
+  it('two overlapping wildcards do not merge with each other', () => {
+    const { engine, world, slimes } = freshWorld();
+    const a = createSlime(WILDCARD_LEVEL, 100, 100);
+    const b = createSlime(WILDCARD_LEVEL, 118, 100);
+    World.add(world, [a.body, b.body]);
+    slimes.push(a, b);
+
+    step(engine);
+
+    expect(slimes).toHaveLength(2);
+    expect(getScore()).toBe(0);
   });
 });

@@ -7,14 +7,14 @@
 
 import Matter from 'matter-js';
 import { createPhysicsWorld, JAR_TOP } from './physics.js';
-import { createSlime, previewSlime, randomSpawnLevel } from './entities.js';
+import { createSlime, previewSlime, randomSpawnLevel, WILDCARD_LEVEL } from './entities.js';
 import { setupInput } from './input.js';
 import { renderScene } from './render.js';
 import { setupMergeHandling } from './merge.js';
 import { setupLandingSquash } from './animation.js';
 import { pruneExpiredEffects } from './effects.js';
 import { checkGameOver } from './gameover.js';
-import { resetScore, setGameOver, isGameOverActive, getScore } from './state.js';
+import { resetScore, setGameOver, isGameOverActive, getScore, onScoreChange } from './state.js';
 import {
   initUI,
   setNextPreview,
@@ -24,7 +24,7 @@ import {
   showGameOver,
   hideGameOver,
 } from './ui.js';
-import { playGameOver, primeAudio, startBackgroundMusic } from './sound.js';
+import { playGameOver, primeAudio, startBackgroundMusic, playBonus } from './sound.js';
 import {
   initYandexSDK,
   notifyGameReady,
@@ -72,6 +72,23 @@ let pending = null;
 // a small swatch in the HUD so the player can plan one slime further ahead.
 let upcomingLevel = null;
 
+// Every WILDCARD_SCORE_STEP points crossed, the *next* rolled slime is
+// replaced with a wildcard bonus ball (see entities.js) instead of a random
+// level — queued here rather than injected immediately so it still goes
+// through the normal upcoming -> pending pipeline the player already reads.
+const WILDCARD_SCORE_STEP = 5000;
+let lastWildcardMilestone = 0;
+let wildcardQueued = false;
+
+onScoreChange((score) => {
+  const crossed = Math.floor(score / WILDCARD_SCORE_STEP) * WILDCARD_SCORE_STEP;
+  if (crossed > lastWildcardMilestone) {
+    lastWildcardMilestone = crossed;
+    wildcardQueued = true;
+    playBonus();
+  }
+});
+
 // Kicked off immediately; game start doesn't wait on it. Best-score reads
 // and the mandatory LoadingAPI.ready() signal chain off it so they never
 // race the SDK's own async init.
@@ -88,9 +105,14 @@ function pendingY() {
 
 /** Rolls a new upcoming level and reflects it in the HUD's "next" swatch. */
 function rollUpcoming() {
-  upcomingLevel = randomSpawnLevel(getScore());
+  if (wildcardQueued) {
+    wildcardQueued = false;
+    upcomingLevel = WILDCARD_LEVEL;
+  } else {
+    upcomingLevel = randomSpawnLevel(getScore());
+  }
   const preview = previewSlime(upcomingLevel);
-  setNextPreview(preview.radius, preview.color);
+  setNextPreview(preview.radius, preview.color, preview.isWild);
 }
 
 /** Promotes the current `upcomingLevel` into the hanging `pending` slime, then rolls a new upcoming one. */
@@ -98,6 +120,7 @@ function spawnPending(x) {
   const preview = previewSlime(upcomingLevel);
   pending = {
     level: upcomingLevel,
+    isWild: preview.isWild,
     x,
     y: pendingY(),
     radius: preview.radius,
@@ -155,6 +178,8 @@ function resetGame() {
   effects.length = 0;
   resetScore();
   setGameOver(false);
+  lastWildcardMilestone = 0;
+  wildcardQueued = false;
   startWorld();
   initSpawner(canvas.width / 2);
   hideGameOver();

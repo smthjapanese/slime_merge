@@ -120,6 +120,15 @@ export function playGameOver() {
   vibrate([50, 40, 50]);
 }
 
+/** Bright ascending arpeggio for crossing a score milestone (awards the wildcard bonus slime). */
+export function playBonus() {
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
+  notes.forEach((freq, i) => {
+    setTimeout(() => playTone({ startFreq: freq, duration: 0.16, volume: 0.18, type: 'triangle' }), i * 70);
+  });
+  vibrate([20, 30, 20, 30, 20]);
+}
+
 // --- Background music ------------------------------------------------------
 //
 // A light, cheerful loop — a plain I-V-vi-IV progression in C major (no

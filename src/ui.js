@@ -94,9 +94,17 @@ function updateSoundToggleLabel() {
   soundToggleButton.textContent = isMuted() ? 'Звук: выкл' : 'Звук: вкл';
 }
 
-/** Updates the "next slime" preview swatch in the HUD's top-left corner. */
-export function setNextPreview(radius, color) {
-  nextPreviewEl.style.backgroundColor = color;
+const WILDCARD_PREVIEW_GRADIENT =
+  'conic-gradient(#ff6b6b, #ffd43b, #63e6be, #4dabf7, #9775fa, #f783ac, #ff6b6b)';
+
+/**
+ * Updates the "next slime" preview swatch in the HUD's top-left corner.
+ * The wildcard bonus slime (isWild) gets a rainbow ring instead of a flat
+ * color so its "matches anything" nature is visible before it's dropped.
+ */
+export function setNextPreview(radius, color, isWild = false) {
+  nextPreviewEl.style.backgroundImage = isWild ? WILDCARD_PREVIEW_GRADIENT : 'none';
+  nextPreviewEl.style.backgroundColor = isWild ? 'transparent' : color;
   const size = Math.min(48, Math.max(16, radius * 0.6));
   nextPreviewEl.style.width = `${size}px`;
   nextPreviewEl.style.height = `${size}px`;

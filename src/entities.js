@@ -10,7 +10,7 @@ const { Bodies } = Matter;
 // relative to their size (pure area-scaling would make level 8 ~25x level 1's mass).
 export const SLIME_LEVELS = [
   { level: 0, radius: 18, color: '#ff6b6b', density: 0.0025 },
-  { level: 1, radius: 26, color: '#ffa94d', density: 0.0022 },
+  { level: 1, radius: 26, color: '#ff9f43', density: 0.0022 },
   { level: 2, radius: 34, color: '#ffd43b', density: 0.0019 },
   { level: 3, radius: 44, color: '#a9e34b', density: 0.0016 },
   { level: 4, radius: 54, color: '#63e6be', density: 0.0014 },
@@ -50,15 +50,70 @@ function getLevelDef(levelIndex) {
   return def;
 }
 
+// --- Wildcard bonus slime ---------------------------------------------
+//
+// A special slime awarded every WILDCARD_SCORE_STEP points (see main.js's
+// milestone tracking) that merges with a slime of *any* level instead of
+// requiring a matching one. Identified by `isWild: true` on its wrapper
+// rather than a real level index — `'wild'` is the sentinel level value
+// passed through previewSlime()/createSlime() to select it. Rendered with
+// a distinct rainbow-sparkle look (render.js) so it always reads as
+// special regardless of the base color chosen here.
+export const WILDCARD_LEVEL = 'wild';
+const WILDCARD_RADIUS = 20;
+const WILDCARD_DENSITY = 0.0023;
+const WILDCARD_COLOR = '#fff3d6';
+
+function previewWildcard() {
+  return {
+    level: WILDCARD_LEVEL,
+    isWild: true,
+    radius: WILDCARD_RADIUS,
+    color: WILDCARD_COLOR,
+    expression: 'happy',
+  };
+}
+
+function createWildcardSlime(x, y) {
+  const body = Bodies.circle(x, y, WILDCARD_RADIUS, {
+    restitution: 0.2,
+    friction: 0.5,
+    density: WILDCARD_DENSITY,
+    label: 'slime-wild',
+    plugin: { merging: false },
+  });
+
+  const slime = {
+    body,
+    level: WILDCARD_LEVEL,
+    isWild: true,
+    radius: WILDCARD_RADIUS,
+    color: WILDCARD_COLOR,
+    idlePhase: Math.random() * Math.PI * 2,
+    squashStartTime: null,
+    squashAmount: 0,
+    spawnedAt: null,
+    baseExpression: 'happy',
+    surprisedUntil: null,
+    dizzyUntil: null,
+  };
+  body.plugin.wrapper = slime;
+
+  return slime;
+}
+
 /**
  * Read-only metadata for a level (radius/color) plus a freshly-rolled
  * expression, with no physics body attached. Used for the spawner's HUD
  * "next" swatch and for the hanging pending slime before it's dropped.
+ * Pass WILDCARD_LEVEL instead of a level index to preview the bonus ball.
  */
 export function previewSlime(levelIndex) {
+  if (levelIndex === WILDCARD_LEVEL) return previewWildcard();
   const def = getLevelDef(levelIndex);
   return {
     level: def.level,
+    isWild: false,
     radius: def.radius,
     color: def.color,
     expression: pickRandomBaseExpression(),
@@ -75,6 +130,8 @@ export function previewSlime(levelIndex) {
  * without keeping a separate body->wrapper lookup table in sync.
  */
 export function createSlime(levelIndex, x, y) {
+  if (levelIndex === WILDCARD_LEVEL) return createWildcardSlime(x, y);
+
   const def = getLevelDef(levelIndex);
 
   const body = Bodies.circle(x, y, def.radius, {
@@ -88,6 +145,7 @@ export function createSlime(levelIndex, x, y) {
   const slime = {
     body,
     level: def.level,
+    isWild: false,
     radius: def.radius,
     color: def.color,
     // Random phase so idle-breathing slimes don't all pulse in lockstep.

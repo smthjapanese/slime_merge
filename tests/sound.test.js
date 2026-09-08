@@ -3,6 +3,7 @@ import {
   playLandThud,
   playMerge,
   playGameOver,
+  playBonus,
   startBackgroundMusic,
   stopBackgroundMusic,
   isMuted,
@@ -25,6 +26,15 @@ describe('sound effects without Web Audio support', () => {
     expect(() => playLandThud(performance.now())).not.toThrow();
     expect(() => playMerge(3)).not.toThrow();
     expect(() => playGameOver()).not.toThrow();
+  });
+
+  it('playBonus (the wildcard-milestone chime) never throws, muted or not', () => {
+    setMuted(false);
+    expect(() => playBonus()).not.toThrow();
+
+    setMuted(true);
+    expect(() => playBonus()).not.toThrow();
+    setMuted(false);
   });
 });
 

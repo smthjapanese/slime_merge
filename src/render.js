@@ -80,12 +80,33 @@ export function drawJar(ctx) {
   ctx.restore();
 }
 
+// Rainbow sparkle ring drawn on a wildcard bonus slime instead of horns —
+// signals "matches any color" at a glance.
+const WILDCARD_SPARKLE_COLORS = ['#ff6b6b', '#ffd43b', '#63e6be', '#4dabf7', '#9775fa', '#f783ac'];
+
+function drawWildcardSparkles(ctx, radius) {
+  const count = WILDCARD_SPARKLE_COLORS.length;
+  for (let i = 0; i < count; i += 1) {
+    const angle = (i / count) * Math.PI * 2 - Math.PI / 2;
+    const x = Math.cos(angle) * radius * 0.7;
+    const y = Math.sin(angle) * radius * 0.7;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 0.12, 0, Math.PI * 2);
+    ctx.fillStyle = WILDCARD_SPARKLE_COLORS[i];
+    ctx.fill();
+    ctx.lineWidth = Math.max(1, radius * 0.02);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.stroke();
+  }
+}
+
 /**
  * Draws the jelly-slime character centered on the current canvas origin,
  * at the given radius. All feature sizes are proportional to `radius` so
- * the same artwork scales cleanly across all 8 levels.
+ * the same artwork scales cleanly across all 8 levels. `isWild` swaps the
+ * usual horns for a rainbow sparkle ring (see the wildcard bonus slime).
  */
-function drawSlimeArt(ctx, radius, color, expression) {
+function drawSlimeArt(ctx, radius, color, expression, isWild = false) {
   const light = lighten(color, 0.55);
   const dark = darken(color, 0.35);
   const hornColor = darken(color, 0.15);
@@ -112,9 +133,13 @@ function drawSlimeArt(ctx, radius, color, expression) {
   ctx.strokeStyle = dark;
   ctx.stroke();
 
-  // --- Horns: two small nubs on top.
-  drawHorn(ctx, -radius * 0.42, hornColor, radius);
-  drawHorn(ctx, radius * 0.42, hornColor, radius);
+  // --- Horns (or, for the wildcard bonus slime, a rainbow sparkle ring).
+  if (isWild) {
+    drawWildcardSparkles(ctx, radius);
+  } else {
+    drawHorn(ctx, -radius * 0.42, hornColor, radius);
+    drawHorn(ctx, radius * 0.42, hornColor, radius);
+  }
 
   // --- Gloss highlight.
   ctx.save();
@@ -170,16 +195,16 @@ export function drawSlime(ctx, slime, now) {
   ctx.translate(position.x, position.y);
   ctx.rotate(angle);
   ctx.scale(scaleX, scaleY);
-  drawSlimeArt(ctx, slime.radius, slime.color, expression);
+  drawSlimeArt(ctx, slime.radius, slime.color, expression, slime.isWild);
   ctx.restore();
 }
 
 /** Draws the pending (not-yet-dropped) slime, translucent, at a fixed height. */
-export function drawPendingSlime(ctx, x, y, radius, color, expression) {
+export function drawPendingSlime(ctx, x, y, radius, color, expression, isWild) {
   ctx.save();
   ctx.globalAlpha = 0.85;
   ctx.translate(x, y);
-  drawSlimeArt(ctx, radius, color, expression);
+  drawSlimeArt(ctx, radius, color, expression, isWild);
   ctx.restore();
 }
 
@@ -244,6 +269,14 @@ export function renderScene(ctx, { slimes, pending, effects = [] }, now) {
   }
 
   if (pending) {
-    drawPendingSlime(ctx, pending.x, pending.y, pending.radius, pending.color, pending.expression);
+    drawPendingSlime(
+      ctx,
+      pending.x,
+      pending.y,
+      pending.radius,
+      pending.color,
+      pending.expression,
+      pending.isWild
+    );
   }
 }

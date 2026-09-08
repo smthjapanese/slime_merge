@@ -32,7 +32,12 @@ function tryMerge(bodyA, bodyB, world, slimes, effects) {
   // One of the bodies is a wall (or anything without a slime wrapper).
   if (!wrapperA || !wrapperB) return;
 
-  if (wrapperA.level !== wrapperB.level) return;
+  // Two wildcards colliding: nothing to merge into, just let them bounce.
+  if (wrapperA.isWild && wrapperB.isWild) return;
+
+  const isWildPair = wrapperA.isWild || wrapperB.isWild;
+  // A wildcard matches any level; otherwise both slimes must share a level.
+  if (!isWildPair && wrapperA.level !== wrapperB.level) return;
 
   // Chain-reaction guard: a body already claimed by another merge this frame
   // (from an earlier pair in the same collisionStart event) sits out.
@@ -40,7 +45,10 @@ function tryMerge(bodyA, bodyB, world, slimes, effects) {
   bodyA.plugin.merging = true;
   bodyB.plugin.merging = true;
 
-  const currentLevel = wrapperA.level;
+  // The wildcard takes on whichever level it touched; a normal pair just
+  // uses either side (they're equal).
+  const normalWrapper = wrapperA.isWild ? wrapperB : wrapperA;
+  const currentLevel = normalWrapper.level;
   const nextLevel = currentLevel + 1;
   const midX = (bodyA.position.x + bodyB.position.x) / 2;
   const midY = (bodyA.position.y + bodyB.position.y) / 2;
@@ -51,8 +59,8 @@ function tryMerge(bodyA, bodyB, world, slimes, effects) {
   removeFromArray(slimes, wrapperA);
   removeFromArray(slimes, wrapperB);
 
-  let flashRadius = wrapperA.radius;
-  let burstColor = wrapperA.color;
+  let flashRadius = normalWrapper.radius;
+  let burstColor = normalWrapper.color;
   if (currentLevel < MAX_LEVEL_INDEX) {
     const merged = createSlime(nextLevel, midX, midY);
     merged.spawnedAt = now; // drives the pop-in scale-up in animation.js
