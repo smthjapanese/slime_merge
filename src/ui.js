@@ -13,6 +13,7 @@ import {
 } from './physics.js';
 import { isMuted, toggleMuted, primeAudio } from './sound.js';
 import { SLIME_LEVELS } from './entities.js';
+import { t, applyTranslations } from './i18n.js';
 
 const stage = document.getElementById('stage');
 const scoreValueEl = document.getElementById('score-value');
@@ -71,6 +72,7 @@ export function initUI({ onStart, onPauseRequest, onResumeRequest, onRestart }) 
   pauseSettingsButton.addEventListener('click', showSettings);
   settingsBackButton.addEventListener('click', hideSettings);
 
+  applyTranslations();
   updateSoundToggleLabel();
   soundToggleButton.addEventListener('click', () => {
     primeAudio();
@@ -92,7 +94,19 @@ export function initUI({ onStart, onPauseRequest, onResumeRequest, onRestart }) 
 }
 
 function updateSoundToggleLabel() {
-  soundToggleButton.textContent = isMuted() ? 'Звук: выкл' : 'Звук: вкл';
+  soundToggleButton.textContent = isMuted() ? t('soundOff') : t('soundOn');
+}
+
+/**
+ * Re-applies every translated string in the UI. Call once the real player
+ * language is known (resolveLanguage() in i18n.js has been given the SDK
+ * instance) — initUI() already applies the default language immediately so
+ * the page never renders blank, this just refreshes it once the actual
+ * language resolves, which happens asynchronously after SDK init.
+ */
+export function applyLanguage() {
+  applyTranslations();
+  updateSoundToggleLabel();
 }
 
 // Cycles through every level's actual color (and back to the first) so the

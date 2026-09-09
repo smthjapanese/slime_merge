@@ -23,7 +23,9 @@ import {
   hidePause,
   showGameOver,
   hideGameOver,
+  applyLanguage,
 } from './ui.js';
+import { resolveLanguage } from './i18n.js';
 import { playGameOver, primeAudio, startBackgroundMusic, playBonus } from './sound.js';
 import {
   initYandexSDK,
@@ -100,6 +102,15 @@ onScoreChange((score) => {
 // and the mandatory LoadingAPI.ready() signal chain off it so they never
 // race the SDK's own async init.
 const yandexReady = initYandexSDK();
+
+// The UI renders in the default language (Russian) immediately so the page
+// is never blank; once the SDK resolves, re-apply every string in the real
+// player language (ysdk.environment.i18n.lang) — required by Yandex Games
+// moderation for every language declared in the store listing.
+yandexReady.then((ysdk) => {
+  resolveLanguage(ysdk);
+  applyLanguage();
+});
 
 let bestScore = 0;
 yandexReady.then(() => getBestScore()).then((score) => {

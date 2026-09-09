@@ -31,9 +31,17 @@
         <div id="hud">
           <div id="danger-line"></div>
 
-          <div id="score-hud">Счёт: <span id="score-value">0</span></div>
+          <div id="score-hud"><span data-i18n="score">Счёт:</span> <span id="score-value">0</span></div>
 
-          <button id="pause-button" type="button" class="hidden" aria-label="Пауза">⏸</button>
+          <button
+            id="pause-button"
+            type="button"
+            class="hidden"
+            data-i18n-aria="pauseAriaLabel"
+            aria-label="Пауза"
+          >
+            ⏸
+          </button>
 
           <div id="next-hud">
             <div id="next-preview-circle"></div>
@@ -41,8 +49,13 @@
 
           <div id="main-menu" class="overlay-screen">
             <div class="overlay-panel">
-              <button id="start-button" type="button" class="panel-button">Играть</button>
-              <button id="menu-settings-button" type="button" class="panel-button panel-button--secondary">
+              <button id="start-button" type="button" class="panel-button" data-i18n="play">Играть</button>
+              <button
+                id="menu-settings-button"
+                type="button"
+                class="panel-button panel-button--secondary"
+                data-i18n="settings"
+              >
                 Настройки
               </button>
             </div>
@@ -50,10 +63,17 @@
 
           <div id="pause-overlay" class="overlay-screen hidden">
             <div class="overlay-panel">
-              <h2>Пауза</h2>
-              <button id="resume-button" type="button" class="panel-button">Продолжить</button>
-              <button id="pause-restart-button" type="button" class="panel-button">Начать заново</button>
-              <button id="pause-settings-button" type="button" class="panel-button panel-button--secondary">
+              <h2 data-i18n="pausedHeading">Пауза</h2>
+              <button id="resume-button" type="button" class="panel-button" data-i18n="resume">Продолжить</button>
+              <button id="pause-restart-button" type="button" class="panel-button" data-i18n="restart">
+                Начать заново
+              </button>
+              <button
+                id="pause-settings-button"
+                type="button"
+                class="panel-button panel-button--secondary"
+                data-i18n="settings"
+              >
                 Настройки
               </button>
             </div>
@@ -61,9 +81,14 @@
 
           <div id="settings-overlay" class="overlay-screen hidden">
             <div class="overlay-panel">
-              <h2>Настройки</h2>
+              <h2 data-i18n="settings">Настройки</h2>
               <button id="sound-toggle-button" type="button" class="panel-button">Звук: вкл</button>
-              <button id="settings-back-button" type="button" class="panel-button panel-button--secondary">
+              <button
+                id="settings-back-button"
+                type="button"
+                class="panel-button panel-button--secondary"
+                data-i18n="back"
+              >
                 Назад
               </button>
             </div>
@@ -71,10 +96,12 @@
 
           <div id="game-over" class="overlay-screen hidden">
             <div class="overlay-panel">
-              <h2>Игра окончена</h2>
-              <p>Счёт: <span id="final-score-value">0</span></p>
-              <p>Лучший счёт: <span id="best-score-value">0</span></p>
-              <button id="restart-button" type="button" class="panel-button">Играть снова</button>
+              <h2 data-i18n="gameOverHeading">Игра окончена</h2>
+              <p><span data-i18n="score">Счёт:</span> <span id="final-score-value">0</span></p>
+              <p><span data-i18n="bestScore">Лучший счёт:</span> <span id="best-score-value">0</span></p>
+              <button id="restart-button" type="button" class="panel-button" data-i18n="playAgain">
+                Играть снова
+              </button>
             </div>
           </div>
         </div>
